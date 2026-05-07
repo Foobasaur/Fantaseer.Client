@@ -1,0 +1,28 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="../../../source/Hearthstone-Deck-Tracker/Hearthstone Deck Tracker/Hearthstone Deck Tracker.csproj">
+    <Platform Project="x86" />
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
+  <Project Path="../../../source/Hearthstone-Deck-Tracker/HearthWatcher/HearthWatcher.csproj">
+    <Platform Project="x86" />
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
+  <Project Path="Fantaseer.HDT/Fantaseer.HDT.csproj">
+    <BuildType Solution="Debug|*" Project="Plugin" />
+    <Platform Project="x86" />
+  </Project>
+  <Project Path="Fantaseer.Tests/Fantaseer.Tests.csproj">
+    <Platform Project="x86" />
+  </Project>
+  <Project Path="Fantaseer/Fantaseer.csproj">
+    <Platform Project="x86" />
+  </Project>
+</Solution>

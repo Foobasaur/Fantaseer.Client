@@ -1,0 +1,35 @@
+﻿<UserControl x:Class="Fantaseer.HDT.Features.Settings.View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             xmlns:lex="http://wpflocalizeextension.codeplex.com"
+             lex:LocalizeDictionary.DesignCulture="en"
+             lex:ResxLocalizationProvider.DefaultAssembly="Fantaseer.HDT"
+             lex:ResxLocalizationProvider.DefaultDictionary="Stringz"
+             xmlns:local="clr-namespace:Fantaseer.HDT.Features.Settings"
+             d:DataContext="{d:DesignInstance Type=local:ViewModel}">
+    <StackPanel>
+        <StackPanel Margin="12"
+                    Orientation="Horizontal">
+            <TextBlock Margin="5,0,0,0"
+                       VerticalAlignment="Center"
+                       FontSize="15"
+                       FontWeight="SemiBold">
+                <Run Text="{lex:Loc Username}" />
+                <Run Text=": " />
+                <Run Text="{Binding Username}" />
+            </TextBlock>
+        </StackPanel>
+
+        <CheckBox Margin="12"
+                  VerticalAlignment="Center"
+                  Content="{lex:Loc Enabled}"
+                  IsChecked="{Binding Enabled}" />
+
+        <Button Content="{lex:Loc Authorize}"
+                Margin="12 0 12 12"
+                Command="{Binding AuthorizeCommand}" />
+    </StackPanel>
+</UserControl>
