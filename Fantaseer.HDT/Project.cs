@@ -1,5 +1,4 @@
 ﻿using Fantaseer.Core.Api;
-using Fantaseer.Core.Api.Routes;
 using HearthDb.Enums;
 using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
@@ -18,14 +17,10 @@ public class Project {
       GameMode.Ranked => Tracker.Game.CurrentFormatType switch {
         FormatType.FT_STANDARD => "Standard",
         FormatType.FT_WILD => "Wild",
-        _ => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(Tracker.Game.CurrentFormatType), "Unknown format type"),
       },
-      _ => null,
+      _ => throw new ArgumentOutOfRangeException(nameof(Tracker.Game.CurrentGameMode), "Unknown game mode"),
     };
-  }
-  public bool Enabled {
-    get => Fantaseer.Project.I.Enabled;
-    set => Fantaseer.Project.I.Enabled = value;
   }
 
   public void Init() {

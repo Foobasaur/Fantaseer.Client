@@ -19,7 +19,7 @@ public class OAuth(ITestOutputHelper output) : Tast(output) {
   }
   [Fact]
   public async Task Test_Services_Login() {
-    await Server.I.Login();
+    await Server.I.Login(true);
     var player = Server.I.Auth?.Player;
     Assert.NotNull(player);
     Assert.Equal(player!.platformId, player.identityMeta!.players!.user!.sub);

@@ -1,7 +1,6 @@
 ﻿using Fantaseer.Core.Api;
 using Hearthstone_Deck_Tracker.Enums;
 using Xunit.Abstractions;
-
 namespace Fantaseer.Tests.Tasty;
 
 public class Eventy(ITestOutputHelper output) : Tast(output) {
@@ -10,9 +9,9 @@ public class Eventy(ITestOutputHelper output) : Tast(output) {
   [Fact]
   public async Task Test_Eventy_Publish() {
     var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
-      mode: "Arena",
-      eventable: "OnPlayerDraw",
-      pickables: ["FP1_011"]
+      mode: "Standard",
+      eventable: "OnEntityWillTakeDamage",
+      pickables: ["CORE_BT_781"]
      ));
     Logaree(response);
   }
@@ -21,7 +20,7 @@ public class Eventy(ITestOutputHelper output) : Tast(output) {
   public async Task Test_Eventy_Publish_GameStart() {
     var pickables = arenaz.OrderBy(_ => Guid.NewGuid()).Take(10).ToArray();
     var response = await Server.Eventy.Publish(new Core.Api.Routes.Eventy.Options(
-      mode: "Arena",
+      mode: "Standard",
       eventable: "OnGameStart",
       pickables,
       meta: new { role = "player" }

@@ -7,12 +7,22 @@ public record Response<T>(string Body) {
   public int Status { get; init; }
   public T? Content { get; } = JS.Deserialize<T>(Body);
 }
-public class Request : IDisposable {
-  private readonly HttpClient http;
-  public readonly Options opts;
+public class Request : IDisposable { 
+  public readonly struct Options(string endpoint, object? content = null) {
+    public static implicit operator Options(string endpoint) => new(endpoint);
+    public static implicit operator Options((string endpoint, object? content) t) => new(t.endpoint, t.content);
 
-  public Request(string href, Options opts) {
-    http = new() { Timeout = TimeSpan.FromMinutes(3), BaseAddress = new(href) };
+    public string? baseUrl { get; init; }
+    public string endpoint { get; init; } = endpoint;
+    public object? content { get; init; } = content;
+    public Dictionary<string, string> headers { get; init; } = [];
+    public AuthenticationHeaderValue? authorization { get; init; }
+  };
+  private readonly Options opts;
+  private readonly HttpClient http;
+
+  public Request(Options opts) {
+    http = new() { Timeout = TimeSpan.FromMinutes(3), BaseAddress = new(opts.baseUrl) };
     this.opts = opts;
   }
 
@@ -31,14 +41,4 @@ public class Request : IDisposable {
   }
 
   public void Dispose() => http.Dispose();
-
-  public readonly struct Options(string endpoint, object? content = null) {
-    public static implicit operator Options(string endpoint) => new(endpoint);
-    public static implicit operator Options((string endpoint, object? content) t) => new(t.endpoint, t.content);
-
-    public string endpoint { get; init; } = endpoint;
-    public object? content { get; init; } = content;
-    public Dictionary<string, string> headers { get; init; } = [];
-    public AuthenticationHeaderValue? authorization { get; init; }
-  };
 }
