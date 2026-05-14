@@ -126,14 +126,6 @@
   <data name="Username" xml:space="preserve">
     <value>Username</value>
   </data>
-  <data name="ADescription" xml:space="preserve">
-    <value>A Fantasizer Journey</value>
-    <comment>Give folks the gist of what they can expect</comment>
-  </data>
-  <data name="AName" xml:space="preserve">
-    <value>Fantaseer</value>
-    <comment>Name it something Snazzy</comment>
-  </data>
   <data name="Options" xml:space="preserve">
     <value>Options</value>
   </data>

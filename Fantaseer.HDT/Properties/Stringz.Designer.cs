@@ -61,24 +61,6 @@ namespace Fantaseer.HDT.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to A Fantasizer Journey.
-        /// </summary>
-        internal static string ADescription {
-            get {
-                return ResourceManager.GetString("ADescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Fantaseer.
-        /// </summary>
-        internal static string AName {
-            get {
-                return ResourceManager.GetString("AName", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Authorize.
         /// </summary>
         internal static string Authorize {

@@ -1,6 +1,9 @@
 ﻿using System.Net.Http;
 namespace Fantaseer.Core.Api.Lib;
 
+public sealed class RouteResponseException(int statusCode, string message) : Exception(message) {
+  public int StatusCode { get; } = statusCode;
+}
 public abstract class Route(string endpoint, Func<string?>? bearer = null) {
   public Request Request(Request.Options props) => new(props with {
     baseUrl = props.baseUrl ?? Server.HREF,
@@ -14,6 +17,6 @@ public abstract class Route(string endpoint, Func<string?>? bearer = null) {
     var res = await req.Fetch<T>();
     return res is { Status: >= 200 and < 300 }
       ? res.Content ?? throw new ArgumentException("Empty response body")
-      : throw new HttpRequestException($"Request failed with status {res.Status}: {res.Body}");
+      : throw new RouteResponseException(res.Status, $"Request failed with status: {res.Body}");
   }
 }

@@ -9,8 +9,8 @@ internal partial class ViewModel : ObservableObject {
   string? username = Server.I.Auth?.Player?.meta?.user?.preferred_username;
 
   public bool Enabled {
-    get => Fantaseer.Project.I.Enabled;
-    set => SetProperty(Fantaseer.Project.I.Enabled, value, (v) => Fantaseer.Project.I.Enabled = v);
+    get => Project.I.Enabled;
+    set => SetProperty(Project.I.Enabled, value, (v) => Project.I.Enabled = v);
 
   }
 
