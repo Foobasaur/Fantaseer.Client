@@ -1,13 +1,17 @@
 ﻿using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 namespace Fantaseer.Core;
 
 public readonly struct Dirs {
-  public static readonly string AppData = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-    $"{nameof(Fantaseer)}"
- );
-  public static void EnsureAppData() {
-    if (!Directory.Exists(AppData)) Directory.CreateDirectory(AppData);
+  public static string AppData {
+    get {
+      var path = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        $"{nameof(Fantaseer)}{{{Assembly.GetExecutingAssembly()?.GetCustomAttribute<GuidAttribute>()?.Value}}}"
+      );
+      return Directory.Exists(path) ? path : Directory.CreateDirectory(path).FullName;
+    }
   }
 }
 public readonly struct Files {

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using Fantaseer.Core.Api.Lib;
 namespace Fantaseer.Core.Api.Routes;
 
@@ -6,7 +7,7 @@ public class Twitchy() : Route("api/twitch") {
   /// <summary>
   /// Opens the browser to the EBS initiation URL and waits for the callback
   /// </summary>
-  public async Task<Authorized> Authorize() {
+  public async Task<T> Authorize<T>() {
     var nonce = $"{Guid.NewGuid():N}";
     var init = await Response<Dictionary<string, object>>(($"auth?type=init", nonce));
 
@@ -18,12 +19,12 @@ public class Twitchy() : Route("api/twitch") {
       ct.ThrowIfCancellationRequested();
       await Task.Delay(TimeSpan.FromSeconds(3), ct);
       try {
-        var res = await req.Fetch<Authorized>(ct);
-        if (res.Status is 406 or 404) continue; // No content yet, keep polling
+        var res = await req.Fetch<T>(ct);
+        if (res.StatusCode is HttpStatusCode.NotAcceptable or HttpStatusCode.NotFound) continue; // No content yet, keep polling
         return res.Content ?? throw new Exception();
       } catch { continue; }
     }
   }
 
-  public Task<Authorized> Refresh(string token) => Response<Authorized>(new("auth?type=refresh", token));
+  public Task<T> Refresh<T>(string token) => Response<T>(new("auth?type=refresh", token));
 }

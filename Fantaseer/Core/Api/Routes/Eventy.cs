@@ -1,15 +1,13 @@
-﻿using System.Net.Http;
+﻿using System.Net;
 using Fantaseer.Core.Api.Lib;
 namespace Fantaseer.Core.Api.Routes;
 
 public class Eventy() : Route("api/events") {
   public readonly struct Options(string eventable, IEnumerable<string> pickables, object? meta = null) {
     public static implicit operator Options((string eventable, string pickable) t) => new(t.eventable, [t.pickable]);
-    public static implicit operator Options((string eventable, string pickable, object meta) t) =>
-     new(t.eventable, [t.pickable], t.meta);
+    public static implicit operator Options((string eventable, string pickable, object meta) t) => new(t.eventable, [t.pickable], t.meta);
     public static implicit operator Options((string eventable, IEnumerable<string> pickables) t) => new(t.eventable, t.pickables);
-    public static implicit operator Options((string eventable, IEnumerable<string> pickables, object meta) t) =>
-      new(t.eventable, t.pickables, t.meta);
+    public static implicit operator Options((string eventable, IEnumerable<string> pickables, object meta) t) => new(t.eventable, t.pickables, t.meta);
 
     public string eventable { get; init; } = eventable;
     public IEnumerable<string> pickables { get; init; } = pickables;
@@ -24,7 +22,7 @@ public class Eventy() : Route("api/events") {
           $"player?gameId={current.GameId}&gameMode={current.GameMode}",
           opts.Select(o => new { o.eventable, o.pickables, o.meta })
         ));
-      } catch (RouteResponseException ex) when (ex.StatusCode != 406) {         
+      } catch (RouteResponseException ex) when (ex.StatusCode != HttpStatusCode.NotAcceptable) {         
         if (i >= tries) throw new Exception($"Failed to publish events after multiple attempts: {ex.Message}", ex);
         await Task.Delay(TimeSpan.FromSeconds(i));
         await Server.I.Login();

@@ -7,7 +7,7 @@ namespace Fantaseer.HDT.Features.Settings {
   public partial class View : UserControl {
     public View() {
       InitializeComponent();
-      DataContext = ViewModel.I;
+      DataContext = new ViewModel();
     }
   }
 }

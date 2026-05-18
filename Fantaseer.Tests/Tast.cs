@@ -16,7 +16,7 @@ public abstract class Tast(ITestOutputHelper output) {
   };
   public void Logaroo(Response<object> o) {
     Assert.NotNull(o);
-    output.WriteLine($"Status: {o.Status}");
+    output.WriteLine($"Status: {o.StatusCode}");
     output.WriteLine($"Body: {o.Body}");
     output.WriteLine($"Response: {JS.Serialize(o, JS.Options.Pretty)}");
   }

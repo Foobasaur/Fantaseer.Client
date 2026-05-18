@@ -1,10 +1,11 @@
-﻿using System.Net.Http;
+﻿using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 namespace Fantaseer.Core.Api.Lib;
 
 public record Response<T>(string Body) {
-  public int Status { get; init; }
+  public HttpStatusCode StatusCode { get; init; }
   public T? Content { get; } = JS.Deserialize<T>(Body);
 }
 public class Request : IDisposable { 
@@ -37,7 +38,7 @@ public class Request : IDisposable {
 
     using var res = await http.SendAsync(message, ct);
     var body = await res.Content.ReadAsStringAsync();
-    return new(body) { Status = (int)res.StatusCode };
+    return new(body) { StatusCode = res.StatusCode };
   }
 
   public void Dispose() => http.Dispose();

@@ -15,8 +15,8 @@ public class Server {
   public async Task<Authorized> Authenticate(bool fresh) {
     try {
       if (fresh) throw new Exception("New authentication required");
-      return await Twitchy.Refresh(Auth?.Tokens.refresh_token ?? throw new Exception("No refresh token available"));
-    } catch { return await Twitchy.Authorize(); }
+      return await Twitchy.Refresh<Authorized>(Auth?.Tokens.refresh_token ?? throw new Exception("No refresh token available"));
+    } catch { return await Twitchy.Authorize<Authorized>(); }
   }
   public async Task Login(bool fresh = false) => Auth = await Authenticate(fresh);
 

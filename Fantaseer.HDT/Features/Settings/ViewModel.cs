@@ -30,6 +30,4 @@ internal partial class ViewModel : ObservableObject {
     //  TBusername.Text = payload.display_name;
     //}
   }
-
-  public static ViewModel I { get; } = new();
 }

@@ -1,8 +1,7 @@
-﻿#pragma warning disable IDE0130 // Namespace does not match folder structure
-using System.Diagnostics;
-using System.IO;
+﻿using System.Diagnostics;
 using Fantaseer.Core.Api;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace System.Runtime.CompilerServices {
   internal static class IsExternalInit { }
 }
@@ -13,11 +12,10 @@ namespace Fantaseer {
   /// This is where we put the logic for our Plug-in
   /// </summary>
   public class Project {
-    public record Current(string GameMode, string? GameId);
-    Project() => Core.Dirs.EnsureAppData();
+    Project() { }
 
     public bool Enabled { get; set; } = true;
-    public Func<Current>? Currently { get; set; }
+    public Func<(string GameMode, string? GameId)>? Currently { get; set; }
 
     public void Init() {
       Enabled = true;
