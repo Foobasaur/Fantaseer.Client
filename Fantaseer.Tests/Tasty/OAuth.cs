@@ -27,13 +27,13 @@ public class OAuth(ITestOutputHelper output) : Tast(output) {
   }
   [Fact]
   public async Task Test_Twitchy_Helix() {
-    using var req = Server.Twitchy.Request("helix/users");
+    using var req = Server.Twitchy.Req("helix/users");
     var response = await req.Fetch<object>();
     Logaroo(response);
   }
   [Fact]
   public async Task Test_Twitchy_Helix_Post() {
-    using var req = Server.Twitchy.Request((
+    using var req = Server.Twitchy.Req((
        $"helix/moderation/enforcements/status?broadcaster_id={Server.I.Auth!.Player!.platformId}",
        new { data = new[] { new { msg_id = "123", msg_text = "hw" }, new { msg_id = "393", msg_text = "Boooooo!" } } }
      ));

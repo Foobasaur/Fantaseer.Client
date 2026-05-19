@@ -9,25 +9,17 @@ internal partial class ViewModel : ObservableObject {
   string? username = Server.I.Auth?.Player?.meta?.user?.preferred_username;
 
   public bool Enabled {
-    get => Project.I.Enabled;
-    set => SetProperty(Project.I.Enabled, value, (v) => Project.I.Enabled = v);
-
+    get => Project.I.Setting.Enabled;
+    set => SetProperty(
+      Project.I.Setting.Enabled, 
+      value, 
+      (enabled) => Project.I.Setting = Project.I.Setting with { Enabled = enabled }
+    );
   }
 
   [RelayCommand]
   public async Task Authorize() {
     await Server.I.Login(Username != null);
-    Username = Server.I.Auth?.Player?.meta?.user?.preferred_username;  
-    //var token = await AuthService.LaunchAuthFlowAndGetToken;
-    //if (token)
-    //{
-    //  cbTwitchEnabled.IsChecked = true;
-    //  HDTPlugin.Instance.IsEnabled = true;
-    //}
-    //var payload = JwtHelper.DecodeJwtToken<JwtHelper.JwtPayload>(AuthService.GetToken);
-    //if (payload != null)
-    //{
-    //  TBusername.Text = payload.display_name;
-    //}
+    Username = Server.I.Auth?.Player?.meta?.user?.preferred_username;
   }
 }

@@ -20,7 +20,7 @@ public class Eventy : Tast {
   [Fact]
   public async Task Test_Eventy_Publish_GameStart() {
     var pickables = arenaz.OrderBy(_ => Guid.NewGuid()).Take(10).ToArray();
-    var response = await Server.Eventy.Publish(new Core.Api.Routes.Eventy.Options(
+    var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
       eventable: "OnGameStart",
       pickables,
       meta: new { role = "player" }
@@ -36,7 +36,7 @@ public class Eventy : Tast {
     // OnOpponentMinionAttack: 'defended',
     // OnEntityWillTakeDamage: 'damaged',
     // END_000 END_003 END_006 | VAC_508 | TOY_806
-    using var req = Server.Eventy.Request(mock with {
+    using var req = Server.Eventy.Req(mock with {
       endpoint = "player",
       content = new {
         mode = "Arena",

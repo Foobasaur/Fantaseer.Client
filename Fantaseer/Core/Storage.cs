@@ -16,4 +16,5 @@ public readonly struct Dirs {
 }
 public readonly struct Files {
   public static readonly string Session = Path.Combine(Dirs.AppData, "session.json");
+  public static readonly string Settings = Path.Combine(Dirs.AppData, "settings.json");
 }

@@ -8,8 +8,8 @@ public class Server {
 
   private Authorized? auth;
   public Authorized? Auth {
-    get => auth ??= JS.Defile<Authorized>(Files.Session);
-    set => auth = JS.Refile(value, Files.Session);
+    get => auth ??= JS.FromFile<Authorized>(Files.Session);
+    set => auth = JS.ToFile(value, Files.Session);
   }
 
   public async Task<Authorized> Authenticate(bool fresh) {

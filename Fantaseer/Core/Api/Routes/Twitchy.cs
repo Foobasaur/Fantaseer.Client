@@ -9,12 +9,12 @@ public class Twitchy() : Route("api/twitch") {
   /// </summary>
   public async Task<T> Authorize<T>() {
     var nonce = $"{Guid.NewGuid():N}";
-    var init = await Response<Dictionary<string, object>>(($"auth?type=init", nonce));
+    var init = await Res<Dictionary<string, object>>(($"auth?type=init", nonce));
 
     // start process to open the browser to the EBS after starting session
     Process.Start(init["url"]?.ToString() ?? throw new Exception("URL not found"));
     var ct = new CancellationTokenSource(TimeSpan.FromMinutes(3)).Token;
-    using var req = Request(("auth?type=poll", nonce));
+    using var req = Req(("auth?type=poll", nonce));
     while (true) {
       ct.ThrowIfCancellationRequested();
       await Task.Delay(TimeSpan.FromSeconds(3), ct);
@@ -26,5 +26,5 @@ public class Twitchy() : Route("api/twitch") {
     }
   }
 
-  public Task<T> Refresh<T>(string token) => Response<T>(new("auth?type=refresh", token));
+  public Task<T> Refresh<T>(string token) => Res<T>(new("auth?type=refresh", token));
 }

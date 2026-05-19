@@ -27,12 +27,12 @@ public static class JS {
   }
   public static T? Parse<T>(string json, JsonSerializerOptions? options = default) =>
     Deserialize<T>(Base64UrlDecode(json), options ?? Options.InsensitiveCamelCase);
-  public static T? Defile<T>(string filepath, JsonSerializerOptions? options = default) =>
+  public static T? FromFile<T>(string filepath, JsonSerializerOptions? options = default) =>
     File.Exists(filepath) ? Deserialize<T>(File.ReadAllText(filepath), options) : default;
 
   public static string Serialize(object o, JsonSerializerOptions? options = default) =>
    JsonSerializer.Serialize(o, options ?? Options.InsensitiveCamelCase);
-  public static T? Refile<T>(T? o, string filepath, JsonSerializerOptions? options = default) {
+  public static T? ToFile<T>(T? o, string filepath, JsonSerializerOptions? options = default) {
     if (o != null) File.WriteAllText(filepath, Serialize(o, options));
     else if (File.Exists(filepath)) File.Delete(filepath);
     return o;

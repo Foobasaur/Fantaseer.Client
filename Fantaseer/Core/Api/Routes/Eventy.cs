@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using Fantaseer.Core.Api.Lib;
 namespace Fantaseer.Core.Api.Routes;
 
@@ -14,22 +15,20 @@ public class Eventy() : Route("api/events") {
     public object? meta { get; init; } = meta;
   }
 
-  public async Task<T> Publish<T>(IEnumerable<Options> opts, int tries = 3) {
-    var current = Project.I.Currently!.Invoke();
+  public async Task<T> Publish<T>(params IEnumerable<Options> opts) {
+    var (gameMode, gameId) = Project.I.Currently!.Invoke();
     for (int i = 1; ; i++) {
       try {
-        return await Response<T>((
-          $"player?gameId={current.GameId}&gameMode={current.GameMode}",
+        return await Res<T>((
+          $"player?gameId={gameId}&gameMode={gameMode}",
           opts.Select(o => new { o.eventable, o.pickables, o.meta })
         ));
-      } catch (RouteResponseException ex) when (ex.StatusCode != HttpStatusCode.NotAcceptable) {         
-        if (i >= tries) throw new Exception($"Failed to publish events after multiple attempts: {ex.Message}", ex);
+      } catch (ResponseException ex) when (ex.StatusCode != HttpStatusCode.NotAcceptable) {
+        if (i >= 3) throw new Exception($"Failed to publish events after multiple attempts: {ex.Message}", ex);
         await Task.Delay(TimeSpan.FromSeconds(i));
         await Server.I.Login();
       }
     }
   }
-  public Task<object> Publish(IEnumerable<Options> opts) => Publish<object>(opts);
-  public Task<T> Publish<T>(Options opts) => Publish<T>([opts]);
-  public Task<object> Publish(Options opts) => Publish<object>(opts);
+  public Task Publish(params IEnumerable<Options> opts) => Publish<object>(opts);
 }

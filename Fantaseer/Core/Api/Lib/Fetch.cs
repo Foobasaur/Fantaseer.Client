@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -8,7 +9,7 @@ public record Response<T>(string Body) {
   public HttpStatusCode StatusCode { get; init; }
   public T? Content { get; } = JS.Deserialize<T>(Body);
 }
-public class Request : IDisposable { 
+public class Request : IDisposable {
   public readonly struct Options(string endpoint, object? content = null) {
     public static implicit operator Options(string endpoint) => new(endpoint);
     public static implicit operator Options((string endpoint, object? content) t) => new(t.endpoint, t.content);
@@ -27,7 +28,9 @@ public class Request : IDisposable {
     this.opts = opts;
   }
 
-  public async Task<Response<T>> Fetch<T>(CancellationToken ct = default) {
+  public Task<Response<T>> Fetch<T>(CancellationToken ct = default) => Task.Run(async () => {
+    Trace.WriteLine(JS.Serialize(opts));
+    if (!Project.I.Setting.Enabled) throw new InvalidOperationException($"Project is not enabled.");
     using HttpRequestMessage message = new(opts.content == null ? HttpMethod.Get : HttpMethod.Post, $"{opts.endpoint}") {
       Content = opts.content == null
       ? null
@@ -38,8 +41,8 @@ public class Request : IDisposable {
 
     using var res = await http.SendAsync(message, ct);
     var body = await res.Content.ReadAsStringAsync();
-    return new(body) { StatusCode = res.StatusCode };
-  }
+    return new Response<T>(body) { StatusCode = res.StatusCode };
+  });
 
   public void Dispose() => http.Dispose();
 }
