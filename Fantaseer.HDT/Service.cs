@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
+using System.Text.Json.Serialization;
 using Fantaseer.Core;
 using Fantaseer.Core.Api;
 using Fantaseer.Core.Api.Routes;
-using Fantaseer.HDT.Trackers;
+using Fantaseer.HDT.Services;
 using HearthDb.Enums;
 using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
@@ -13,6 +14,24 @@ namespace Fantaseer.HDT;
 
 
 public class Service {
+  public sealed class State {
+    public Reconnector.State? Connection { get; set; }
+    public Dictionary<ActivePlayer, List<string>> Turns { get; set; } = new() {
+      [ActivePlayer.Player] = [],
+      [ActivePlayer.Opponent] = []
+    };
+    public Dictionary<string, int> Page { get; set; } = [];
+    [JsonIgnore]
+    public Dictionary<string, int> Cursor { get; } = [];
+  }
+
+  private readonly Trakctor trakctor = new();
+  private readonly Reconnector connector = new();
+  private State? state;
+  public State? Status {
+    get => state ??= JS.FromFile<State>(Files.Status);
+    set => state = JS.ToFile(value, Files.Status);
+  }
   Service() {
     Project.I.Currently = () => (
     Tracker.Game.CurrentGameMode switch {
@@ -30,106 +49,63 @@ public class Service {
 #else
       throw new ArgumentOutOfRangeException(nameof(Tracker.Game.CurrentGameMode), "Unknown game mode")
 #endif
-    }, Tracker.Game.CurrentGameStats?.GameId.ToString());
+    }, state?.Connection?.GameEntity.Seed);
+  }
+
+  void DebugEvent(string eventable, object? info = null) {
+    Trace.WriteLine("\n===========");
+    Trace.WriteLine($"Event: {eventable}");
+    Trace.WriteLine($"Info: {info}");
+    Trace.WriteLine("===========\n");
   }
 
   public void Load() {
     Project.I.Init();
-    var turns = new Dictionary<ActivePlayer, List<string>> {
-      [ActivePlayer.Player] = [],
-      [ActivePlayer.Opponent] = []
-    };
-    var attackTracker = new Attacker();
-    var reconnectTracker = new Reconnector();      // TODO: finish
-    reconnectTracker.OnIsReplayChanged = () => {
-      DebugEvent(nameof(reconnectTracker.OnIsReplayChanged), reconnectTracker.IsReplaying);
-      
-    };
-    LogEvents.OnPowerLogLine.Add(line => {
-      reconnectTracker.Feed(line);
-      attackTracker.Feed(line);
-    });
 
-    void DebugEvent(string eventable, object? info = null) {
-      Trace.WriteLine("\n===========");
-      Trace.WriteLine($"Event: {eventable}");
-      Trace.WriteLine($"Info: {info}");
-      Trace.WriteLine($"Turns: player - {turns[ActivePlayer.Player].Count} opponent - {turns[ActivePlayer.Opponent].Count}");
-      Trace.WriteLine("===========\n");
+    bool Skip(string eventable, object? args = null) {
+      DebugEvent(eventable, new { method = "skip", args });
+      if (Status == null) return true; // if state is null, we can assume it's the first turn and avoid resetting the turns
+      Status.Page.TryGetValue(eventable, out var stored);
+      Status.Cursor.TryGetValue(eventable, out var i);
+      if (i < stored) { Status.Cursor[eventable] = i + 1; return true; }
+      Status.Page[eventable] = ++stored;
+      Status.Cursor[eventable] = stored;
+      return false;
     }
-    //LogEvents.OnAchievementsLogLine.Add(line => Trace.WriteLine($"Achievements log: {line}"));
-    //LogEvents.OnArenaLogLine.Add(line => Trace.WriteLine($"Arena log: {line}"));
-    //LogEvents.OnAssetLogLine.Add(line => Trace.WriteLine($"Asset log: {line}"));
-    //LogEvents.OnBobLogLine.Add(line => Trace.WriteLine($"Bob log: {line}"));
-    //LogEvents.OnPowerLogLine.Add(line => Trace.WriteLine($"Power log: {line}"));
-    //LogEvents.OnGameplayLogLine.Add(line => Trace.WriteLine($"Gameplay log: {line}"));
-    GameEvents.OnGameStart.Add(() => {
-      DebugEvent(nameof(GameEvents.OnGameStart), JS.Serialize(new { turns }));
-
-      turns[ActivePlayer.Player].Clear();
-      turns[ActivePlayer.Opponent].Clear();
-      var pickables = Tracker.Game.Player.PlayerCardList.Select(x => x.Id);
-      var events = new List<Eventy.Options> {(
-        nameof(GameEvents.OnGameStart),
-        Tracker.Game.Player.Hero?.CardId == null ? pickables : pickables.Append(Tracker.Game.Player.Hero.CardId),
-        new { role = "player" }
-      )};
-      Server.Eventy.Publish(
-        Tracker.Game.Opponent.Hero?.CardId == null ? events
-        : events.Append((nameof(GameEvents.OnGameStart), Tracker.Game.Opponent.Hero.CardId, new { role = "opponent" }))
-      );
+    LogEvents.OnPowerLogLine.Add(line => {
+      connector.Feed(line);
+      trakctor.Feed(line);
     });
+
+    connector.OnCreateGame = tcs => {
+      Trace.WriteLine("Reconnect burst started");
+      Status?.Cursor.Clear();
+
+      tcs.Task.ContinueWith(task => {
+        Trace.WriteLine($"Reconnect burst ended {JS.Serialize(task.Result)}");
+        if (Status?.Connection?.GameEntity.Seed == task.Result.GameEntity.Seed) return; // if the seed is the same, we can assume it's the same game and avoid resetting the state
+        Status = new() { Connection = task.Result };
+
+        DebugEvent(nameof(GameEvents.OnGameStart), JS.Serialize(new { state }));
+        var pickables = Tracker.Game.Player.PlayerCardList.Select(x => x.Id);
+        var events = new List<Eventy.Options> {(
+          nameof(GameEvents.OnGameStart),
+          Tracker.Game.Player.Hero?.CardId == null ? pickables : pickables.Append(Tracker.Game.Player.Hero.CardId),
+          new { role = "player" }
+        )};
+        Server.Eventy.Publish(
+          Tracker.Game.Opponent.Hero?.CardId == null ? events
+          : events.Append((nameof(GameEvents.OnGameStart), Tracker.Game.Opponent.Hero.CardId, new { role = "opponent" }))
+        );
+      }, TaskScheduler.Default);
+    };
 
     // ===================================================
-    // Note:
-    //    these events are fired for both player and opponent entities.
-    //    so we include the info in the meta to allow differentiation.
-    GameEvents.OnTurnStart.Add(role => {
-      DebugEvent(nameof(GameEvents.OnTurnStart), role);
-
-      //Tracker.Game.DrawnLastGame
-      //Tracker.Game.MatchInfo
-      //Tracker.Game.MetaData
-      //Tracker.Game.CurrentGameStats
-      turns[role].AddRange(
-        Tracker.Game.Entities.Values
-        .Where(e => e.IsInGraveyard && e.CardId != null && !turns.Any(d => d.Value.Contains(e.CardId)))
-        .Select(x => x.CardId!)
-      );
-      Server.Eventy.Publish(
-        (nameof(GameEvents.OnTurnStart), turns[role], new { role, player = Tracker.Game.Player.Id, opponent = Tracker.Game.Opponent.Id })
-      );
-    });
-
-    // replaced by attrackter
-    //GameEvents.OnEntityWillTakeDamage.Add(info => {
-    //  DebugEvent(nameof(GameEvents.OnEntityWillTakeDamage), JS.Serialize(new {
-    //    info.Value,
-    //    entity = info.Entity.ToString(),
-    //    tags = info.Entity.Tags
-    //  }));
-
-    //  var pickable = info.Entity.CardId;
-    //  if (pickable == null) return;
-
-    //  Server.Eventy.Publish((nameof(GameEvents.OnEntityWillTakeDamage), pickable, new { info = info.Entity.ToString() }));
-    //});
-
-    //void OnAttackEventInvoked(string eventable, AttackInfo info) {
-    //  DebugEvent(eventable, info);
-
-    //  Server.Eventy.Publish(
-    //    (eventable, info.Attacker.Id, new { type = "attacker" }),
-    //    (eventable, info.Defender.Id, new { type = "defender" })
-    //  );
-    //}
-    //GameEvents.OnPlayerMinionAttack.Add(info => OnAttackEventInvoked(nameof(GameEvents.OnPlayerMinionAttack), info));
-    //GameEvents.OnOpponentMinionAttack.Add(info => OnAttackEventInvoked(nameof(GameEvents.OnOpponentMinionAttack), info));
-
-    attackTracker.OnAttack = @event => {
+    // Note: these events are fired for both player and opponent entities.
+    trakctor.OnAttack = @event => {
       var eventable = @event.attacker.player == Tracker.Game.Player.Id ? nameof(GameEvents.OnPlayerMinionAttack)
       : nameof(GameEvents.OnOpponentMinionAttack);
-      DebugEvent(eventable, @event);
+      if (Skip(eventable, @event)) return;
 
       var attacker = new { @event.attacker.player, @event.attacker.damage };
       var defender = new { @event.defender.player, @event.defender.damage };
@@ -141,35 +117,44 @@ public class Service {
       );
     };
 
-    attackTracker.OnDamage = @event => {
-      if (string.IsNullOrEmpty(@event.source.cardId)) return;
+    trakctor.OnDamage = @event => {
       var eventable = nameof(GameEvents.OnEntityWillTakeDamage);
+      if (Skip(eventable, @event)) return;
 
-      // TODO?: for hero entities,
-      // we might want to check if they have a weapon equipped and use that as the source instead,
-      // since that's what is actually dealing the dmg and would be more useful to know.
-      // But this is a bit spaghetti since we need to make sure we correctly identify the player's hero vs opponent's hero,
-      // and also handle cases where there might not be a weapon equipped.
-      // For now, we'll just use the hero as the source if it's a hero entity.
-      //var sourceCardId = @event.source.cardId;
-      //if (sourceCardId.StartsWith("HERO_")) {
-      //  var player = Tracker.Game.Entities.Values
-      //      .FirstOrDefault(e => e.IsPlayer && e.GetTag(GameTag.PLAYER_ID) == @event.source.player);
-      //  var weaponId = player?.GetTag(GameTag.WEAPON) ?? 0; // or MAIN_HAND_WEAPON_ENTITY
-      //  if (weaponId > 0 && Tracker.Game.Entities.TryGetValue(weaponId, out var w))
-      //    sourceCardId = w.CardId;
-      //}
-      DebugEvent(eventable, @event);
       Server.Eventy.Publish(
         (eventable, @event.target.cardId, new { @event.context, target = new { @event.target.player, @event.target.damage } }),
         (eventable, @event.source.cardId, new { @event.context, source = new { @event.source.player, @event.source.damage } })
       );
     };
+
+    GameEvents.OnTurnStart.Add(role => {
+      DebugEvent(nameof(GameEvents.OnTurnStart), role);
+      if (Status == null) return;
+      Trace.WriteLine($"===\n{role}:\n\t{JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\t{JS.Serialize(Status.Turns[ActivePlayer.Opponent])}");
+      var seen = Status.Turns;
+      foreach (var key in seen.Keys) {
+        var pid = key == ActivePlayer.Player ? Tracker.Game.Player.Id : Tracker.Game.Opponent.Id;
+        Status.Turns[key].AddRange(
+          Tracker.Game.Entities.Values
+            .Where(e => e.IsControlledBy(pid)
+                     && e.HasCardId
+                     && !(e.Info.Hidden && (e.IsInHand || e.IsInDeck))
+                     && e.IsPlayableCard
+                     && !seen[key].Contains(e.CardId!))
+            .Select(e => {
+              Trace.WriteLine($"{key}: {e}");
+              return e.CardId!;
+            })
+        );
+      }
+      Trace.WriteLine($"{role}:\n\t{JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\t{JS.Serialize(Status.Turns[ActivePlayer.Opponent])}\n===");
+      //Status = Status;
+    });
     // ===================================================
 
     void OnEventInvoked(string eventable, Card card) {
-      DebugEvent(eventable, card);
-      Server.Eventy.Publish((eventable, card.Id, new { turns = turns[ActivePlayer.Player].Count }));
+      if (Skip(eventable, card)) return;
+      Server.Eventy.Publish((eventable, card.Id, new { turns = Tracker.Game.GetTurnNumber() }));
     }
     // --- Player events ---
     GameEvents.OnPlayerDraw.Add(c => OnEventInvoked(nameof(GameEvents.OnPlayerDraw), c));

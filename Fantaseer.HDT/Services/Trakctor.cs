@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+namespace Fantaseer.HDT.Services;
 
-namespace Fantaseer.HDT.Trackers;
-
-public sealed class Attacker {
+public sealed class Trakctor {
   public Action<((string cardId, int player, int damage) attacker,
                  (string cardId, int player, int damage) defender)>? OnAttack;
   //
@@ -58,13 +57,11 @@ public sealed class Attacker {
 
   private void PopFrame() {
     if (stack.Count == 0) return;
-
-    var frame = stack.Pop();
-    if (frame.Type != "ATTACK") return;
-
-    var attacker = (frame.Source.cardId, frame.Source.player, frame.Source.damage);
-    var defender = (frame.Target.cardId, frame.Target.player, frame.Target.damage);
-    OnAttack?.Invoke((attacker, defender));
+    else if (stack.Pop() is { Type: "ATTACK" } frame
+      && frame.Source.cardId is not null && frame.Target.cardId is not null) OnAttack?.Invoke((
+      attacker: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
+      defender: (frame.Target.cardId, frame.Target.player, frame.Target.damage)
+    ));
   }
 
   private void StartMeta(string body) {
@@ -85,17 +82,20 @@ public sealed class Attacker {
       if (id == frame.Target.id) frame.Target.damage = pending.Data;
       else if (id == frame.Source.id) frame.Source.damage = pending.Data;
     }
-    else foreach (var s in pending.Info) {
+    else if (frame.Source.cardId is not null) foreach (var s in pending.Info) {
       var (cardId, _, player) = ParseEntity(s);
-      OnDamage?.Invoke(
-        (target: (cardId, player, pending.Data), source: (frame.Source.cardId, frame.Source.player, frame.Source.damage), context: frame.Type
+      if (cardId is null) continue;
+      OnDamage?.Invoke((
+        target: (cardId, player, pending.Data),
+        source: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
+        context: frame.Type
       ));
     }
     pending = null;
   }
 
-  private static (string cardId, int id, int player) ParseEntity(string s) => (
-    CardIdField.Match(s) is { Success: true } cm ? cm.Groups["cid"].Value : "",
+  private static (string? cardId, int id, int player) ParseEntity(string s) => (
+    CardIdField.Match(s) is { Success: true } cm ? cm.Groups["cid"].Value : null,
     IdField.Match(s) is { Success: true } im ? int.Parse(im.Groups["id"].Value) : 0,
     PlayerField.Match(s) is { Success: true } pm ? int.Parse(pm.Groups["p"].Value) : 0
   );
@@ -103,8 +103,8 @@ public sealed class Attacker {
 
   private sealed class Frame(string type) {
     public string Type { get; } = type;
-    public (string cardId, int id, int player, int damage) Source;
-    public (string cardId, int id, int player, int damage) Target;
+    public (string? cardId, int id, int player, int damage) Source;
+    public (string? cardId, int id, int player, int damage) Target;
   }
 
   private sealed class Pending(int data, int infoCount) {
