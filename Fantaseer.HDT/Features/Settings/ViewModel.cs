@@ -6,20 +6,20 @@ namespace Fantaseer.HDT.Features.Settings;
 
 internal partial class ViewModel : ObservableObject {
   [ObservableProperty]
-  string? username = Server.I.Auth?.Player?.meta?.user?.preferred_username;
+  string? username = Server.I.OAuth?.Player?.meta?.user?.preferred_username;
 
   public bool Enabled {
-    get => Project.I.Setting.Enabled;
+    get => Project.I.Settings.Enabled;
     set => SetProperty(
-      Project.I.Setting.Enabled, 
+      Project.I.Settings.Enabled, 
       value, 
-      (enabled) => Project.I.Setting = Project.I.Setting with { Enabled = enabled }
+      (enabled) => Project.I.Settings = Project.I.Settings with { Enabled = enabled }
     );
   }
 
   [RelayCommand]
   public async Task Authorize() {
     await Server.I.Login(Username != null);
-    Username = Server.I.Auth?.Player?.meta?.user?.preferred_username;
+    Username = Server.I.OAuth?.Player?.meta?.user?.preferred_username;
   }
 }

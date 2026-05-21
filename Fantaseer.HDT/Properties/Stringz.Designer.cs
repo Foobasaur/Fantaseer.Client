@@ -88,7 +88,7 @@ namespace Fantaseer.HDT.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Settings.
+        ///   Looks up a localized string similar to Settingz.
         /// </summary>
         internal static string Settings {
             get {

@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
+using System.Windows.Controls;
+using System.Windows.Input;
 using Fantaseer.Core;
 using Fantaseer.Core.Api;
 using Fantaseer.Core.Api.Routes;
@@ -17,8 +19,7 @@ public class Service {
   public sealed class State {
     public Reconnector.State? Connection { get; set; }
     public Dictionary<ActivePlayer, List<string>> Turns { get; set; } = new() {
-      [ActivePlayer.Player] = [],
-      [ActivePlayer.Opponent] = []
+      [ActivePlayer.Player] = [], [ActivePlayer.Opponent] = []
     };
     public Dictionary<string, int> Page { get; set; } = [];
     [JsonIgnore]
@@ -29,12 +30,12 @@ public class Service {
   private readonly Reconnector connector = new();
   private State? state;
   public State? Status {
-    get => state ??= JS.FromFile<State>(Files.Status);
-    set => state = JS.ToFile(value, Files.Status);
+    get => state ??= JS.FromFile<State>();
+    set => state = JS.ToFile(value);
   }
   Service() {
     Project.I.Currently = () => (
-    Tracker.Game.CurrentGameMode switch {
+    gameMode: Tracker.Game.CurrentGameMode switch {
       GameMode.Arena => "Arena",
       GameMode.Battlegrounds => "Battlegrounds",
       GameMode.Ranked => Tracker.Game.CurrentFormatType switch {
@@ -49,44 +50,45 @@ public class Service {
 #else
       throw new ArgumentOutOfRangeException(nameof(Tracker.Game.CurrentGameMode), "Unknown game mode")
 #endif
-    }, state?.Connection?.GameEntity.Seed);
-  }
-
-  void DebugEvent(string eventable, object? info = null) {
+    },
+    gameSeed: Status?.Connection?.GameEntity.Seed ?? throw new ArgumentNullException(),
+    publish: opts => {
+      DebugEvent(opts.eventable, new { funk = "Project.I.Currently", opts });
+      if(Status == null) return false;
+      Status.Page.TryGetValue(opts.eventable, out var stored);
+      Status.Cursor.TryGetValue(opts.eventable, out var i);
+      if (i < stored) { Status.Cursor[opts.eventable] = i + 1; return false; }
+      Status.Page[opts.eventable] = ++stored;
+      Status.Cursor[opts.eventable] = stored;
+      return true;
+    });
+  }     
+  public static void DebugEvent(string eventable, object? info = null) {
     Trace.WriteLine("\n===========");
     Trace.WriteLine($"Event: {eventable}");
     Trace.WriteLine($"Info: {info}");
     Trace.WriteLine("===========\n");
   }
-
   public void Load() {
     Project.I.Init();
-
-    bool Skip(string eventable, object? args = null) {
-      DebugEvent(eventable, new { method = "skip", args });
-      if (Status == null) return true; // if state is null, we can assume it's the first turn and avoid resetting the turns
-      Status.Page.TryGetValue(eventable, out var stored);
-      Status.Cursor.TryGetValue(eventable, out var i);
-      if (i < stored) { Status.Cursor[eventable] = i + 1; return true; }
-      Status.Page[eventable] = ++stored;
-      Status.Cursor[eventable] = stored;
-      return false;
-    }
+    Server.Eventy.OnFetched += body => {
+      Status = Status;
+      DebugEvent("Eventy OnFetched", body);
+    };
     LogEvents.OnPowerLogLine.Add(line => {
       connector.Feed(line);
       trakctor.Feed(line);
     });
 
     connector.OnCreateGame = tcs => {
-      Trace.WriteLine("Reconnect burst started");
+      DebugEvent("OnCreateGame burst started");
       Status?.Cursor.Clear();
 
       tcs.Task.ContinueWith(task => {
-        Trace.WriteLine($"Reconnect burst ended {JS.Serialize(task.Result)}");
+        DebugEvent("OnCreateGame burst ended", JS.Serialize(task.Result));
         if (Status?.Connection?.GameEntity.Seed == task.Result.GameEntity.Seed) return; // if the seed is the same, we can assume it's the same game and avoid resetting the state
         Status = new() { Connection = task.Result };
 
-        DebugEvent(nameof(GameEvents.OnGameStart), JS.Serialize(new { state }));
         var pickables = Tracker.Game.Player.PlayerCardList.Select(x => x.Id);
         var events = new List<Eventy.Options> {(
           nameof(GameEvents.OnGameStart),
@@ -105,7 +107,6 @@ public class Service {
     trakctor.OnAttack = @event => {
       var eventable = @event.attacker.player == Tracker.Game.Player.Id ? nameof(GameEvents.OnPlayerMinionAttack)
       : nameof(GameEvents.OnOpponentMinionAttack);
-      if (Skip(eventable, @event)) return;
 
       var attacker = new { @event.attacker.player, @event.attacker.damage };
       var defender = new { @event.defender.player, @event.defender.damage };
@@ -119,8 +120,6 @@ public class Service {
 
     trakctor.OnDamage = @event => {
       var eventable = nameof(GameEvents.OnEntityWillTakeDamage);
-      if (Skip(eventable, @event)) return;
-
       Server.Eventy.Publish(
         (eventable, @event.target.cardId, new { @event.context, target = new { @event.target.player, @event.target.damage } }),
         (eventable, @event.source.cardId, new { @event.context, source = new { @event.source.player, @event.source.damage } })
@@ -153,7 +152,6 @@ public class Service {
     // ===================================================
 
     void OnEventInvoked(string eventable, Card card) {
-      if (Skip(eventable, card)) return;
       Server.Eventy.Publish((eventable, card.Id, new { turns = Tracker.Game.GetTurnNumber() }));
     }
     // --- Player events ---

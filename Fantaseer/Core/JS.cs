@@ -1,8 +1,9 @@
-﻿using System.IO;
+﻿using System.Collections.Concurrent;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
 namespace Fantaseer.Core;
 
 public static class JS {
@@ -27,14 +28,31 @@ public static class JS {
   }
   public static T? Parse<T>(string json, JsonSerializerOptions? options = default) =>
     Deserialize<T>(Base64UrlDecode(json), options ?? Options.InsensitiveCamelCase);
-  public static T? FromFile<T>(string filepath, JsonSerializerOptions? options = default) =>
-    File.Exists(filepath) ? Deserialize<T>(File.ReadAllText(filepath), options) : default;
 
   public static string Serialize(object o, JsonSerializerOptions? options = default) =>
    JsonSerializer.Serialize(o, options ?? Options.InsensitiveCamelCase);
-  public static T? ToFile<T>(T? o, string filepath, JsonSerializerOptions? options = default) {
-    if (o != null) File.WriteAllText(filepath, Serialize(o, options));
-    else if (File.Exists(filepath)) File.Delete(filepath);
+
+  private static readonly ConcurrentDictionary<string, object> _fileLocks = new();
+  public static T? FromFile<T>(
+    string? filepath = null, JsonSerializerOptions? options = default, [CallerMemberName] string? propertyName = null
+    ) { 
+    var path = filepath ?? Files.Get(propertyName);
+    lock (_fileLocks.GetOrAdd(path, new object()))
+      return File.Exists(path) ? Deserialize<T>(File.ReadAllText(path), options) : default;
+  }
+  public static T? ToFile<T>(
+    T? o, string? filepath = null, JsonSerializerOptions? options = default, [CallerMemberName] string? propertyName = null
+    ) {
+    var path = filepath ?? Files.Get(propertyName);
+    if (o == null) lock (_fileLocks.GetOrAdd(path, new object())) File.Delete(path);
+    else {
+      var tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
+      File.WriteAllText(tempPath, Serialize(o, options));
+      lock (_fileLocks.GetOrAdd(path, new object())) {
+        if (File.Exists(path)) File.Replace(tempPath, path, destinationBackupFileName: null);
+        else File.Move(tempPath, path);
+      }
+    }
     return o;
   }
 

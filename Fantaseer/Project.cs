@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using Fantaseer.Core;
-using Fantaseer.Core.Api;     
+using Fantaseer.Core.Api;
+using Fantaseer.Core.Api.Routes;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure 
 namespace System.Runtime.CompilerServices {
@@ -13,25 +15,27 @@ namespace Fantaseer {
   /// This is where we put the logic for our Plug-in
   /// </summary>
   public class Project {
-    public record Settings(bool Enabled);
-    Project() { }
-
-    private Settings? setting;
-    public Settings Setting {
-      get => setting ??= JS.FromFile<Settings>(Files.Settings) ?? new Settings(true);
-      set => setting = JS.ToFile(value, Files.Settings);
+    public record Settingz(bool Enabled);
+    Project() {
+      if(!Directory.Exists(Dirs.AppData)) Directory.CreateDirectory(Dirs.AppData);
     }
-    public Func<(string gameMode, string? gameId)>? Currently { get; set; }
+
+    private Settingz? settings;
+    public Settingz Settings {
+      get => settings ??= JS.FromFile<Settingz>() ?? new Settingz(true);
+      set => settings = JS.ToFile(value);
+    }
+    public Func<(string gameMode, string gameSeed, Func<Eventy.Options, bool> publish)>? Currently { get; set; }
 
     public Task Init() => Task.Run(async () => {
-      if (Server.I.Auth?.Tokens?.refresh_token != null) {
+      if (Server.I.OAuth?.Tokens?.refresh_token != null) {
         await Server.I.Login();
-        Trace.WriteLine($"Authentication {JS.Serialize(Server.I.Auth)}");
+        Trace.WriteLine($"Authentication {JS.Serialize(Server.I.OAuth)}");
       } else Trace.WriteLine("Authentication failed no refresh token");
     });
 
     public void DeInit() {
-      Setting = Setting with { Enabled = false };
+      Settings = Settings with { Enabled = false };
     }
 
     public static Project I { get; } = new Project();

@@ -8,7 +8,7 @@ public class Twitchy() : Route("api/twitch") {
   /// Opens the browser to the EBS initiation URL and waits for the callback
   /// </summary>
   public async Task<T> Authorize<T>() {
-    var nonce = $"{Guid.NewGuid():N}";
+    var nonce = $"{Guid.NewGuid():N}"; // TODO?: maybe one nonce per session instead of per auth attempt? but this is probably fine
     var init = await Res<Dictionary<string, object>>(($"auth?type=init", nonce));
 
     // start process to open the browser to the EBS after starting session

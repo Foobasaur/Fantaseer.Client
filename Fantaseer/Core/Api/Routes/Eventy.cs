@@ -15,18 +15,23 @@ public class Eventy() : Route("api/events") {
     public object? meta { get; init; } = meta;
   }
 
+  public override async Task<T> Res<T>(Request.Options opts) {
+    await Server.I.AuthBarrier().ConfigureAwait(false);
+    return await base.Res<T>(opts);
+  }
+
   public async Task<T> Publish<T>(params IEnumerable<Options> opts) {
-    var (gameMode, gameId) = Project.I.Currently!.Invoke();
+    var (gameMode, gameSeed, @publish) = Project.I.Currently!();
+    var options = opts.Where(o => publish(o)).Select(o => new { o.eventable, o.pickables, o.meta }).ToArray();
+    if(!options.Any()) throw new ArgumentException("No valid options provided for publishing events.");
     for (int i = 1; ; i++) {
       try {
-        return await Res<T>((
-          $"player?gameId={gameId}&gameMode={gameMode}",
-          opts.Select(o => new { o.eventable, o.pickables, o.meta })
-        ));
-      } catch (ResponseException ex) when (ex.StatusCode != HttpStatusCode.NotAcceptable) {
+        return await Res<T>(($"player?seed={gameSeed}&mode={gameMode}", options));
+      } catch (ResponseException ex) when (ex is 
+      {  StatusCode: not HttpStatusCode.PreconditionFailed and not HttpStatusCode.BadRequest }) {
         if (i >= 3) throw new Exception($"Failed to publish events after multiple attempts: {ex.Message}", ex);
         await Task.Delay(TimeSpan.FromSeconds(i));
-        await Server.I.Login();
+        if(ex.StatusCode == HttpStatusCode.Unauthorized) await Server.I.Login();
       }
     }
   }

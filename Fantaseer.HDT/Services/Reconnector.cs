@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
-using Hearthstone_Deck_Tracker.Enums;
+﻿using System.Text.RegularExpressions;
 namespace Fantaseer.HDT.Services;
 
 public sealed class Reconnector {
@@ -33,7 +31,6 @@ public sealed class Reconnector {
   private TaskCompletionSource<State>? tcs;
 
   public void Feed(string line) {
-    //Trace.WriteLine(line);
     var m = BodyLine.Match(line);
     var body = (m.Success ? m.Groups["body"].Value : line).Trim();
 
