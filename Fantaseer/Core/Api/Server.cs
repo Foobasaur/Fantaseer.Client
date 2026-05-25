@@ -4,17 +4,17 @@ namespace Fantaseer.Core.Api;
 
 public class Server {
   public const string HREF = "http://localhost:5173";
-  public static SemaphoreSlim Gate { get; } = new SemaphoreSlim(1, 1);
   Server() { }
+  private Task? login;
+  private readonly object loginLock = new(); 
+  public SemaphoreSlim Gate { get; } = new SemaphoreSlim(1, 1);
 
   private Authorized? oauth;
   public Authorized? OAuth {
     get => oauth ??= JS.FromFile<Authorized>();
     set => oauth = JS.ToFile(value);
   }
-
-  private Task? login;
-  private readonly object _loginLock = new();      
+     
 
   public async Task<Authorized> Authenticate(bool fresh) {
     try {
@@ -23,13 +23,13 @@ public class Server {
     } catch { return await Twitchy.Authorize<Authorized>(); }
   }
   public Task Login(bool fresh = false) {
-    lock (_loginLock) {
+    lock (loginLock) {
       return login is { IsCompleted: false } ? login : login = new Func<Task>(async () => OAuth = await Authenticate(fresh))();
     }
   }
   /// <summary>If a Login is currently in progress, await it; otherwise return immediately.</summary>
   public Task AuthBarrier() {
-    lock (_loginLock) {
+    lock (loginLock) {
       return login is { IsCompleted: false } ? login : Task.CompletedTask;
     }
   }

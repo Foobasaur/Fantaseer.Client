@@ -21,8 +21,8 @@ public record JWT(string[] parts) {
     // guaranteed by your userinfo claims
     public string? picture { get; set; }
   }
-  public Head? Header { get; } = JS.Parse<Head>(parts[0]);
-  public Body? Payload { get; } = JS.Parse<Body>(parts[1]);
+  public Head? Header { get; } = JS.Deserialize<Head>(parts[0]?.Base64UrlDecode());
+  public Body? Payload { get; } = JS.Deserialize<Body>(parts[1]?.Base64UrlDecode());
   public string Signature => parts[2];
 }
 public record Tokens {

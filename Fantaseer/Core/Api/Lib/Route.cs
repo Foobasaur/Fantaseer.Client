@@ -17,7 +17,6 @@ public abstract class Route(string endpoint) {
   }
 
   public Request Req(Request.Options opts) => new(opts with {
-    baseUrl = opts.baseUrl ?? Server.HREF,
     endpoint = $"/{endpoint}/{opts.endpoint}",
   });
   public virtual async Task<T> Res<T>(Request.Options opts) {
