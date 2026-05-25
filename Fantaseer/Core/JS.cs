@@ -38,10 +38,10 @@ public static class JS {
   public static T? ToFile<T>(T? o, [CallerMemberName] string? filepath = null) {
     if (o == null) lock (Files.Get(ref filepath)) File.Delete(filepath);
     else {
-      var tempPath = $"{filepath}.{Guid.NewGuid():N}.tmp";
+      var tempPath = Path.GetTempFileName();
       File.WriteAllText(tempPath, Serialize(o));
       lock (Files.Get(ref filepath)) {
-        if (File.Exists(filepath)) File.Replace(tempPath, filepath, destinationBackupFileName: null);
+        if (File.Exists(filepath)) File.Replace(tempPath, filepath, null);
         else File.Move(tempPath, filepath);
       }
     }

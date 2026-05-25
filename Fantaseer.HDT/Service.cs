@@ -54,15 +54,16 @@ public class Service {
     gameSeed: Status?.Connection?.GameEntity.Seed ?? throw new ArgumentNullException(),
     publish: opts => {
       DebugEvent(opts.eventable, new { funk = "Project.I.Currently", opts });
-      if(Status == null) return false;
+      if (Status == null) return false;
       Status.Page.TryGetValue(opts.eventable, out var stored);
       Status.Cursor.TryGetValue(opts.eventable, out var i);
       if (i < stored) { Status.Cursor[opts.eventable] = i + 1; return false; }
       Status.Page[opts.eventable] = ++stored;
       Status.Cursor[opts.eventable] = stored;
       return true;
-    });
-  }     
+    }
+    );
+  }
   public static void DebugEvent(string eventable, object? info = null) {
     Trace.WriteLine("\n===========");
     Trace.WriteLine($"Event: {eventable}");
@@ -95,10 +96,9 @@ public class Service {
           Tracker.Game.Player.Hero?.CardId == null ? pickables : pickables.Append(Tracker.Game.Player.Hero.CardId),
           new { role = "player" }
         )};
-        Server.Eventy.Publish(
-          Tracker.Game.Opponent.Hero?.CardId == null ? events
-          : events.Append((nameof(GameEvents.OnGameStart), Tracker.Game.Opponent.Hero.CardId, new { role = "opponent" }))
-        );
+        if (Tracker.Game.Opponent.Hero?.CardId != null)
+          events.Append((nameof(GameEvents.OnGameStart), Tracker.Game.Opponent.Hero.CardId, new { role = "opponent" }));
+        Server.Eventy.Publish(events);
       }, TaskScheduler.Default);
     };
 

@@ -12,8 +12,9 @@ public class Eventy : Tast {
   [Fact]
   public async Task Test_Eventy_Publish() {
     var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
-      eventable: "OnOpponentPlay",
-      pickables: ["EDR_226"]
+      eventable: "OnPlayerPlayToDeck",
+      pickables: ["FP1_001"],                       
+      meta: new { role = "player" }
      ));
     Logaree(response);
   }
