@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net;
+﻿using System.Net;
 using Fantaseer.Core.Api.Lib;
 namespace Fantaseer.Core.Api.Routes;
 

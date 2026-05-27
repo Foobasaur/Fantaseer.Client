@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace Fantaseer.Tests;
 
-public abstract class Tast(ITestOutputHelper output) {
+public abstract class Taster(ITestOutputHelper output) {
   public readonly ITestOutputHelper output = output;
 
   // % twitch mock-api start 

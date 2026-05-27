@@ -34,8 +34,9 @@ public class Request : IDisposable {
       if (!Project.I.Settings.Enabled) throw new InvalidOperationException($"Project is not enabled.");
       using HttpRequestMessage message = new(options.content == null ? HttpMethod.Get : HttpMethod.Post, $"{options.endpoint}") {
         Headers = {
+          { "Accept", "application/json" },
+          { "Authorization", options.authorization?.ToString() ?? $"Bearer {Server.I.OAuth?.Tokens?.access_token}" },
           { "x-game-code", "HS" },
-          { "Authorization", options.authorization?.ToString() ?? $"Bearer {Server.I.OAuth?.Tokens?.access_token}" }
         },
         Content = options.content == null ? null
         : new StringContent(JS.Serialize(options.content), Encoding.UTF8, "application/json")

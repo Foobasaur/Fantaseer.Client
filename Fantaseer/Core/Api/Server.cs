@@ -3,7 +3,7 @@ using Fantaseer.Core.Api.Routes;
 namespace Fantaseer.Core.Api;
 
 public class Server {
-  public const string HREF = "http://localhost:5173";
+  public const string HREF = "https://d23w5d81b2617y.cloudfront.net";
   Server() { }
   private Task? login;
   private readonly object loginLock = new(); 
