@@ -20,7 +20,6 @@ public sealed class Reconnector {
   public Action<TaskCompletionSource<State>>? OnCreateGame;
   private State Status { get; set; } = new();
 
-  private static readonly Regex BodyLine = new(@"^[A-Z]\s+\d{2}:\d{2}:\d{2}\.\d+\s+\S+\s*-\s*(?<body>.*)$");
   private static readonly Regex PlayerLine = new(@"^Player\s+EntityID=\d+\s+PlayerID=(?<pid>\d+)");
   private static readonly Regex TurnTag = new(@"^tag=TURN value=(?<n>\d+)");
   private static readonly Regex SeedTag = new(@"^tag=GAME_SEED value=(?<seed>\d+)");
@@ -29,11 +28,8 @@ public sealed class Reconnector {
   private enum Section { Before, GameEntity, Player1, Player2, AfterBurst }
   private Section section;
   private TaskCompletionSource<State>? tcs;
-
-  public void Feed(string line) {
-    var m = BodyLine.Match(line);
-    var body = (m.Success ? m.Groups["body"].Value : line).Trim();
-
+                                                                                 
+  public void Feed(string body) {
     if (body == "CREATE_GAME") {
       section = Section.Before;
       Status = new();
@@ -44,7 +40,7 @@ public sealed class Reconnector {
       else if (PlayerLine.Match(body) is { Success: true } pm) section = pm.Groups["pid"].Value == "1" ? Section.Player1 : Section.Player2;
       else if (section == Section.GameEntity && SeedTag.Match(body) is { Success: true } s) Status.GameEntity.Seed = s.Groups["seed"].Value;
       else if (section == Section.GameEntity && TurnTag.Match(body) is { Success: true } t) Status.GameEntity.Turns = int.Parse(t.Groups["n"].Value);
-      else if (section == Section.Player2 && m.Success && !body.StartsWith("tag=")) section = Section.AfterBurst;
+      else if (section == Section.Player2 && !body.StartsWith("tag=")) section = Section.AfterBurst;
       else if (section == Section.AfterBurst && TagChange.Match(body) is { Success: true } tc) {
         var entity = tc.Groups["entity"].Value;
         var tag = tc.Groups["tag"].Value;

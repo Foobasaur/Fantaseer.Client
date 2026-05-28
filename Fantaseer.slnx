@@ -6,6 +6,7 @@
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
+    <File Path="README.md" />
   </Folder>
   <Project Path="../../../source/Hearthstone-Deck-Tracker/Hearthstone Deck Tracker/Hearthstone Deck Tracker.csproj">
     <Platform Project="x86" />

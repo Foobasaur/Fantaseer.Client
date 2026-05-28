@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
-using System.Windows.Controls;
-using System.Windows.Input;
+using System.Text.RegularExpressions;
 using Fantaseer.Core;
 using Fantaseer.Core.Api;
 using Fantaseer.Core.Api.Routes;
@@ -16,6 +15,7 @@ namespace Fantaseer.HDT;
 
 
 public class Service {
+  private static readonly Regex BodyLine = new(@"^[A-Z]\s+\d{2}:\d{2}:\d{2}\.\d+\s+\S+\s*-\s*(?<body>.*)$", RegexOptions.Compiled);
   public sealed class State {
     public Reconnector.State? Connection { get; set; }
     public Dictionary<ActivePlayer, List<string>> Turns { get; set; } = new() {
@@ -28,6 +28,7 @@ public class Service {
 
   private readonly Trakctor trakctor = new();
   private readonly Reconnector connector = new();
+  private readonly Lobbyist lobbyist = new();
   private State? state;
   public State? Status {
     get => state ??= JS.FromFile<State>();
@@ -77,8 +78,14 @@ public class Service {
       DebugEvent("Eventy OnFetched", body);
     };
     LogEvents.OnPowerLogLine.Add(line => {
-      connector.Feed(line);
-      trakctor.Feed(line);
+      Trace.WriteLine(line);
+      var m = BodyLine.Match(line);
+      var body = (m.Success ? m.Groups["body"].Value : line);
+
+      try { connector.Feed(body); } catch (Exception e) { Trace.WriteLine($"connector.Feed: {e}"); }
+      if (Tracker.Game.CurrentGameMode == GameMode.Battlegrounds)
+        try { lobbyist.Feed(body); } catch (Exception e) { Trace.WriteLine($"lobbyist.Feed: {e}"); }
+      try { trakctor.Feed(body); } catch (Exception e) { Trace.WriteLine($"trakctor.Feed: {e}"); }
     });
 
     connector.OnCreateGame = tcs => {
@@ -99,7 +106,14 @@ public class Service {
         if (Tracker.Game.Opponent.Hero?.CardId != null)
           events.Append((nameof(GameEvents.OnGameStart), Tracker.Game.Opponent.Hero.CardId, new { role = "opponent" }));
         Server.Eventy.Publish(events);
-      }, TaskScheduler.Default);
+      });
+    };
+
+    lobbyist.OnAll8Found = list => {
+      var pickables = list.Select(x => x.Value);
+      Server.Eventy.Publish(
+       (nameof(Lobbyist.OnAll8Found), pickables, new { player = Tracker.Game.Player.Hero?.CardId })
+     );
     };
 
     // ===================================================
@@ -129,9 +143,8 @@ public class Service {
     GameEvents.OnTurnStart.Add(role => {
       DebugEvent(nameof(GameEvents.OnTurnStart), role);
       if (Status == null) return;
-      Trace.WriteLine($"===\n{role}:\n\t{JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\t{JS.Serialize(Status.Turns[ActivePlayer.Opponent])}");
-      var seen = Status.Turns;
-      foreach (var key in seen.Keys) {
+      foreach (var key in Status.Turns.Keys) {
+        var seen = Status.Turns[key].ToArray();
         var pid = key == ActivePlayer.Player ? Tracker.Game.Player.Id : Tracker.Game.Opponent.Id;
         Status.Turns[key].AddRange(
           Tracker.Game.Entities.Values
@@ -139,15 +152,20 @@ public class Service {
                      && e.HasCardId
                      && !(e.Info.Hidden && (e.IsInHand || e.IsInDeck))
                      && e.IsPlayableCard
-                     && !seen[key].Contains(e.CardId!))
+                     && !seen.Contains(e.CardId!))
             .Select(e => {
               Trace.WriteLine($"{key}: {e}");
               return e.CardId!;
             })
         );
       }
-      Trace.WriteLine($"{role}:\n\t{JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\t{JS.Serialize(Status.Turns[ActivePlayer.Opponent])}\n===");
-      //Status = Status;
+      Trace.WriteLine($"{role}:\n\tplayer: {JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\topponent: {JS.Serialize(Status.Turns[ActivePlayer.Opponent])}\n===");
+    });
+    GameEvents.OnGameEnd.Add(() => {
+      DebugEvent(nameof(GameEvents.OnGameEnd), Status != null ? JS.Serialize(Status) : null);
+    });
+    GameEvents.OnGameStart.Add(() => {
+      DebugEvent(nameof(GameEvents.OnGameStart), Status != null ? JS.Serialize(Status) : null);
     });
     // ===================================================
 
@@ -157,6 +175,7 @@ public class Service {
     // --- Player events ---
     GameEvents.OnPlayerDraw.Add(c => OnEventInvoked(nameof(GameEvents.OnPlayerDraw), c));
 
+    GameEvents.OnPlayerMinionAttack.Add(c => DebugEvent(nameof(GameEvents.OnPlayerMinionAttack), c));
     GameEvents.OnPlayerGet.Add(c => DebugEvent(nameof(GameEvents.OnPlayerGet), c));
     GameEvents.OnPlayerPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlay), c));
     GameEvents.OnPlayerHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerHandDiscard), c));
@@ -173,6 +192,7 @@ public class Service {
     // --- Opponent events ---
     GameEvents.OnOpponentPlay.Add(c => OnEventInvoked(nameof(GameEvents.OnOpponentPlay), c));
 
+    GameEvents.OnOpponentMinionAttack.Add(c => DebugEvent(nameof(GameEvents.OnOpponentMinionAttack), c));
     GameEvents.OnOpponentHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentHandDiscard), c));
     GameEvents.OnOpponentDeckDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentDeckDiscard), c));
     GameEvents.OnOpponentPlayToDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToDeck), c));

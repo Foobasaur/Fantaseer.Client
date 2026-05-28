@@ -17,81 +17,66 @@ public sealed class Trakctor {
   private static readonly Regex CardIdField = new(@"\bcardId=(?<cid>\S+)");
   private static readonly Regex PlayerField = new(@"\bplayer=(?<p>\d+)\b");
   private static readonly Regex InfoLine = new(@"^Info\[\d+\]\s*=\s*\[(?<ent>[^\]]+)\]");
-  private static readonly Regex HdtPrefix = new(@"^[A-Z]\s+\d{2}:\d{2}:\d{2}\.\d+\s+\S+\s*-\s*");
+  private static readonly Regex Defending = new(@"^TAG_CHANGE\s+Entity=(?<ent>\[[^\]]+\])\s+tag=DEFENDING\s+value=1\b");
   private static readonly Regex MetaHead = new(@"^META_DATA\s+-\s+Meta=(?<meta>\w+)\s+Data=(?<data>-?\d+)\s+InfoCount=(?<count>\d+)");
   private static readonly Regex BlockStart =
     new(@"^BLOCK_START\s+BlockType=(?<type>\w+).*?\bEntity=(?<src>\[[^\]]+\]|\S+)(?:.*?\bTarget=(?<tgt>\[[^\]]+\]|\S+))?");
 
-  public void Feed(string line) {
-    var pm = HdtPrefix.Match(line);
+  public void Feed(string body) {
+    if (pending is null) {
+      if (body.StartsWith("BLOCK_START")) {
+        var m = BlockStart.Match(body);
+        if (!m.Success) stack.Push(new Frame(""));
+        else {
+          var src = ParseEntity(m.Groups["src"].Value);
+          var target = ParseEntity(m.Groups["tgt"].Value);
+          stack.Push(new(m.Groups["type"].Value) {
+            Source = (src.cardId, src.id, src.player, 0),
+            Target = (target.cardId, target.id, target.player, 0),
+          });
+        }
+      } else if (body.StartsWith("META_DATA")) {
+        var meta = MetaHead.Match(body);
+        if (meta.Success && meta.Groups["meta"].Value == "DAMAGE") {
+          var count = int.Parse(meta.Groups["count"].Value);
+          if (count != 0) pending = new(int.Parse(meta.Groups["data"].Value), count);
+        }
+      } else if (stack.Count > 0) {
+        if (Defending.Match(body) is { Success: true } dm
+            && stack.Peek() is { Type: "ATTACK" } atk) {
+          var d = ParseEntity(dm.Groups["ent"].Value);
+          atk.Target = (d.cardId, d.id, d.player, 0);
+        } else if (
+            body.StartsWith("BLOCK_END")
+            && stack.Pop() is { Type: "ATTACK" } frame
+            && frame.Source.cardId is not null && frame.Target.cardId is not null) {
+          OnAttack?.Invoke((
+            attacker: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
+            defender: (frame.Target.cardId, frame.Target.player, frame.Target.damage)));
+        }
+      }
+    } else if (InfoLine.Match(body) is { Success: true } im) {
+      pending.Info.Add(im.Groups["ent"].Value);
+      if (pending.Info.Count >= pending.InfoCount) {
+        var frame = stack.Peek();
+        Trace.WriteLine($"Commit→{frame.Type}, data={pending.Data}, hasHandler={OnDamage != null}");
 
-    var body = (pm.Success ? line.Substring(pm.Length) : line).TrimStart();
-
-    if (pending is not null) {
-      var im = InfoLine.Match(body);
-      if (!im.Success) pending = null;
-      else {
-        pending.Info.Add(im.Groups["ent"].Value);
-        if (pending.Info.Count >= pending.InfoCount) Commit();
-        return;
+        var attack = frame.Type == "ATTACK";
+        foreach (var s in pending.Info) {
+          var (cardId, id, player) = ParseEntity(s);
+          if (attack) {
+            if (id == frame.Target.id) frame.Target.damage = pending.Data;
+            else if (id == frame.Source.id) frame.Source.damage = pending.Data;
+          } else if (frame.Source.cardId is not null && cardId is not null) {
+            OnDamage?.Invoke((
+              target: (cardId, player, pending.Data),
+              source: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
+              context: frame.Type));
+          }
+        }
+        pending = null;
       }
     }
-
-    if (body.StartsWith("BLOCK_START")) PushFrame(body);
-    else if (body.StartsWith("BLOCK_END")) PopFrame();
-    else if (body.StartsWith("META_DATA")) StartMeta(body);
-  }
-
-  private void PushFrame(string body) {
-    var m = BlockStart.Match(body);
-    if (!m.Success) stack.Push(new Frame(""));
-    else {
-      var src = ParseEntity(m.Groups["src"].Value);
-      var target = ParseEntity(m.Groups["tgt"].Value);
-      stack.Push(new(m.Groups["type"].Value) {
-        Source = (src.cardId, src.id, src.player, 0),
-        Target = (target.cardId, target.id, target.player, 0),
-      });
-    }
-  }
-
-  private void PopFrame() {
-    if (stack.Count == 0) return;
-    else if (stack.Pop() is { Type: "ATTACK" } frame
-      && frame.Source.cardId is not null && frame.Target.cardId is not null) OnAttack?.Invoke((
-      attacker: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
-      defender: (frame.Target.cardId, frame.Target.player, frame.Target.damage)
-    ));
-  }
-
-  private void StartMeta(string body) {
-    var meta = MetaHead.Match(body);
-    if (!meta.Success || meta.Groups["meta"].Value != "DAMAGE") return;
-
-    var count = int.Parse(meta.Groups["count"].Value);
-    if (count != 0) pending = new(int.Parse(meta.Groups["data"].Value), count);
-  }
-
-  private void Commit() {
-    if (stack.Count == 0 || pending is null) return;
-    var frame = stack.Peek();
-    Trace.WriteLine($"Commit→{frame.Type}, data={pending.Data}, hasHandler={OnDamage != null}");
-
-    if (frame.Type == "ATTACK") foreach (var s in pending.Info) {
-      var (_, id, _) = ParseEntity(s);
-      if (id == frame.Target.id) frame.Target.damage = pending.Data;
-      else if (id == frame.Source.id) frame.Source.damage = pending.Data;
-    }
-    else if (frame.Source.cardId is not null) foreach (var s in pending.Info) {
-      var (cardId, _, player) = ParseEntity(s);
-      if (cardId is null) continue;
-      OnDamage?.Invoke((
-        target: (cardId, player, pending.Data),
-        source: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
-        context: frame.Type
-      ));
-    }
-    pending = null;
   }
 
   private static (string? cardId, int id, int player) ParseEntity(string s) => (

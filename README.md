@@ -1,1 +1,2 @@
-# Fantaseer.net.Client-
+# Fantaseer
+A .NET client for the Fantaseer API, providing a simple and efficient way to interact with the Fantaseer service. This client allows developers to easily integrate Fantaseer's features into their applications, enabling functionalities such as data retrieval, manipulation, and more.

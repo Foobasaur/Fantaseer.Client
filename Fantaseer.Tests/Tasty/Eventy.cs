@@ -7,13 +7,13 @@ public class Eventy : Taster {
   readonly string[] arenaz = ["AT_015", "AT_033", "AT_053", "AT_080", "AV_113", "AV_114", "AV_118", "AV_126", "AV_204", "AV_207", "AV_210", "AV_212", "AV_222", "AV_244", "AV_259", "AV_260", "AV_266", "AV_269", "AV_283", "AV_284", "AV_290", "AV_294", "AV_313", "AV_316", "AV_325", "AV_328", "AV_330", "AV_339", "AV_340", "AV_405", "AV_601"];
   public Eventy(ITestOutputHelper output) : base(output) {
     Project.I.Settings = new Project.Settingz(true);
-    Project.I.Currently = () => ("Arena", "test-game-id", _ => true);
+    Project.I.Currently = () => ("Battlegrounds", "test-game-id", _ => true);
   }
   [Fact]
   public async Task Test_Eventy_Publish() {
     var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
       eventable: "OnPlayerPlayToDeck",
-      pickables: ["FP1_001"],                       
+      pickables: ["CATA_130"],                       
       meta: new { role = "player" }
      ));
     Logaree(response);
@@ -23,7 +23,7 @@ public class Eventy : Taster {
   public async Task Test_Eventy_Publish_GameStart() {
     var pickables = arenaz.OrderBy(_ => Guid.NewGuid()).Take(10).ToArray();
     var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
-      eventable: "OnGameStart",
+      eventable: "OnAll8Found",
       pickables,
       meta: new { role = "player" }
     ));
