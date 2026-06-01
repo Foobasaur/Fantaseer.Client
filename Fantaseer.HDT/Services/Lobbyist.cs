@@ -2,7 +2,7 @@
 namespace Fantaseer.HDT.Services;
 
 public sealed class Lobbyist {
-  public Action<IReadOnlyDictionary<int, string>>? OnAll8Found;
+  public Action<IReadOnlyDictionary<int, string>>? OnLobbyReady;
 
   private static readonly Regex FullEntity =
     new(@"^FULL_ENTITY\s+-\s+Updating\s+\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\]", RegexOptions.Compiled);
@@ -43,7 +43,7 @@ public sealed class Lobbyist {
     heroes[pid] = cardId;
     if (heroes.Count == 8) {
       fired = true;
-      OnAll8Found?.Invoke(new Dictionary<int, string>(heroes));
+      OnLobbyReady?.Invoke(new Dictionary<int, string>(heroes));
     }
   }
 }

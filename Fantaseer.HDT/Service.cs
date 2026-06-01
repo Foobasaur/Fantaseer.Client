@@ -9,7 +9,6 @@ using HearthDb.Enums;
 using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
 using Hearthstone_Deck_Tracker.Hearthstone;
-using WPFLocalizeExtension.Engine;
 using Tracker = Hearthstone_Deck_Tracker.API.Core;
 namespace Fantaseer.HDT;
 
@@ -78,9 +77,9 @@ public class Service {
       DebugEvent("Eventy OnFetched", body);
     };
     LogEvents.OnPowerLogLine.Add(line => {
-      Trace.WriteLine(line);
+      //Trace.WriteLine(line);
       var m = BodyLine.Match(line);
-      var body = (m.Success ? m.Groups["body"].Value : line);
+      var body = (m.Success ? m.Groups["body"].Value : line).Trim();
 
       try { connector.Feed(body); } catch (Exception e) { Trace.WriteLine($"connector.Feed: {e}"); }
       if (Tracker.Game.CurrentGameMode == GameMode.Battlegrounds)
@@ -109,10 +108,10 @@ public class Service {
       });
     };
 
-    lobbyist.OnAll8Found = list => {
+    lobbyist.OnLobbyReady = list => {
       var pickables = list.Select(x => x.Value);
       Server.Eventy.Publish(
-       (nameof(Lobbyist.OnAll8Found), pickables, new { player = Tracker.Game.Player.Hero?.CardId })
+       (nameof(Lobbyist.OnLobbyReady), pickables, new { player = Tracker.Game.Player.Hero?.CardId })
      );
     };
 
@@ -150,16 +149,13 @@ public class Service {
           Tracker.Game.Entities.Values
             .Where(e => e.IsControlledBy(pid)
                      && e.HasCardId
-                     && !(e.Info.Hidden && (e.IsInHand || e.IsInDeck))
                      && e.IsPlayableCard
+                     && !(e.Info.Hidden && (e.IsInHand || e.IsInDeck))
                      && !seen.Contains(e.CardId!))
-            .Select(e => {
-              Trace.WriteLine($"{key}: {e}");
-              return e.CardId!;
-            })
+            .Select(e =>  e.CardId!)
         );
       }
-      Trace.WriteLine($"{role}:\n\tplayer: {JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\topponent: {JS.Serialize(Status.Turns[ActivePlayer.Opponent])}\n===");
+      Trace.WriteLine($"[{role}]:\n\tplayer: {JS.Serialize(Status.Turns[ActivePlayer.Player])}\n\topponent: {JS.Serialize(Status.Turns[ActivePlayer.Opponent])}\n===");
     });
     GameEvents.OnGameEnd.Add(() => {
       DebugEvent(nameof(GameEvents.OnGameEnd), Status != null ? JS.Serialize(Status) : null);
@@ -211,10 +207,4 @@ public class Service {
   }
 
   public static Service I { get; } = new();
-  public static string Localized(string key) => LocalizeDictionary.Instance.GetLocalizedObject(
-    "Fantaseer.HDT",           // Correct assembly name
-    "Properties.Stringz",        // Full resource path
-    key,
-    System.Globalization.CultureInfo.GetCultureInfo("en")
-  ) as string ?? key;
 }

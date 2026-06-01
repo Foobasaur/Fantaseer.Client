@@ -23,6 +23,7 @@ public class Eventy() : Route("api/events") {
     var (gameMode, gameSeed, @publish) = Project.I.Currently!();
     var options = opts.Where(o => @publish(o)).Select(o => new { o.eventable, o.pickables, o.meta }).ToArray();
     if(!options.Any()) throw new ArgumentException("No valid options provided for publishing events.");
+       // add to buffer if within 3 seconds else
     for (int i = 1; ; i++) {
       try {
         return await Res<T>(($"player?seed={gameSeed}&mode={gameMode}", options));

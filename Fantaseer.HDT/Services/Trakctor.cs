@@ -68,9 +68,12 @@ public sealed class Trakctor {
             if (id == frame.Target.id) frame.Target.damage = pending.Data;
             else if (id == frame.Source.id) frame.Source.damage = pending.Data;
           } else if (frame.Source.cardId is not null && cardId is not null) {
+            var sourceCardId = frame.Source.cardId.StartsWith("TB_BaconShop_DragBuy") && frame.Target.cardId is not null
+              ? frame.Target.cardId
+              : frame.Source.cardId;
             OnDamage?.Invoke((
               target: (cardId, player, pending.Data),
-              source: (frame.Source.cardId, frame.Source.player, frame.Source.damage),
+              source: (sourceCardId, frame.Source.player, frame.Source.damage),
               context: frame.Type));
           }
         }

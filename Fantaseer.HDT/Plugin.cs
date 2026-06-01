@@ -2,6 +2,7 @@
 using System.Windows.Controls;
 using Hearthstone_Deck_Tracker.Plugins;
 using MahApps.Metro.Controls;
+using WPFLocalizeExtension.Engine;
 using Tracker = Hearthstone_Deck_Tracker.API.Core;
 namespace Fantaseer.HDT;
 
@@ -13,11 +14,11 @@ public class Plugin : IPlugin {
   public string Name => "Fantaseer";
   public string Author => "ezexe";
   public string Description => "Foo Bar";
-  public string ButtonText => Service.Localized("Options");
+  public string ButtonText => Localized("Options");
   public Version Version => Assembly.GetExecutingAssembly().GetName().Version;
   public MenuItem MenuItem { get; } = new() { Header = "Fantaseer" };
   public Flyout Flyout { get; } = new() {
-    Header = Service.Localized("Settings"),
+    Header = Localized("Settings"),
     Position = Position.Right,
     Content = new Features.Settings.View()
   };
@@ -46,4 +47,10 @@ public class Plugin : IPlugin {
   /// </summary>
   public void OnUpdate() { }
 
+  public static string Localized(string key) => LocalizeDictionary.Instance.GetLocalizedObject(
+    "Fantaseer.HDT",           // Correct assembly name
+    "Properties.Stringz",      // Full resource path
+    key,
+    System.Globalization.CultureInfo.GetCultureInfo("en")
+  ) as string ?? key;
 }
