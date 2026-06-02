@@ -1,49 +1,48 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
+using Fantaseer.Core;
+
 namespace Fantaseer.HDT.Services;
 
-public sealed class Lobbyist {
-  public Action<IReadOnlyDictionary<int, string>>? OnLobbyReady;
+public sealed class Lobbyist : Logerist {
+  public Action<IEnumerable<string>>? OnLobbyReady;
+  public Action<(string cardId, int place)>? OnRoundPlacement;
 
   private static readonly Regex FullEntity =
-    new(@"^FULL_ENTITY\s+-\s+Updating\s+\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\]", RegexOptions.Compiled);
-  private static readonly Regex CardTypeHero =
-    new(@"^tag=CARDTYPE value=HERO\b", RegexOptions.Compiled);
+    rx(@"^FULL_ENTITY\s+-\s+Updating\s+\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\]");
+
   private static readonly Regex PlayerIdTag =
-    new(@"^tag=PLAYER_ID value=(?<pid>\d+)\b", RegexOptions.Compiled);
+    rx(@"^tag=PLAYER_ID value=(?<pid>\d+)\b");
+
   private static readonly Regex PlayerIdViaTagChange =
-    new(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_ID value=(?<pid>\d+)\b", RegexOptions.Compiled);
+    rx(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_ID value=(?<pid>\d+)\b");
 
-  private readonly Dictionary<int, string> heroes = new();
-  private string? pendingCardId;   // cardId of the current FULL_ENTITY
-  private string? heroCardId;      // armed once that entity is confirmed CARDTYPE=HERO
-  private bool fired;
+  private static readonly Regex LeaderboardPlace =
+    rx(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_LEADERBOARD_PLACE value=(?<place>\d+)\b");
 
-  public void Feed(string body) {
+  private readonly List<string> heroes = [];
+  private string? blockCardId;   // cardId of the FULL_ENTITY block we're currently inside
+
+  protected override void Feed(string body) {
     if (body == "CREATE_GAME") {
+      // Reset       
       heroes.Clear();
-      pendingCardId = heroCardId = null;
-      fired = false;
-    } else if (!fired) {
-      if (FullEntity.Match(body) is { Success: true } fe) {
-        pendingCardId = fe.Groups["cardId"].Value;
-        heroCardId = null;                                   // disarm previous block
-      } else if (pendingCardId != null && CardTypeHero.IsMatch(body)) {
-        heroCardId = pendingCardId;                          // arm: this FULL_ENTITY is a hero
-      } else if (heroCardId != null && PlayerIdTag.Match(body) is { Success: true } pt) {
-        Record(int.Parse(pt.Groups["pid"].Value), heroCardId);   // opponents
-        heroCardId = null;
-      } else if (PlayerIdViaTagChange.Match(body) is { Success: true } tc) {
-        Record(int.Parse(tc.Groups["pid"].Value), tc.Groups["cardId"].Value);  // streamer (and any late reveal)
+      blockCardId = null;
+    //} else if (heroes.Count < 8) {
+    //  Trace.WriteLine($"[Identify]\n{body}\n[Identify]");
+      // Identify
+      if (PlayerIdViaTagChange.Match(body) is { Success: true } tc) heroes.Add(tc.Groups["cardId"].Value);
+      else if (FullEntity.Match(body) is { Success: true } fe) blockCardId = fe.Groups["cardId"].Value;
+      else if (blockCardId != null && PlayerIdTag.Match(body) is { Success: true }) {
+        heroes.Add(blockCardId);
+        blockCardId = null;
       }
-    }
-  }
 
-  private void Record(int pid, string cardId) {
-    if (pid is < 1 or > 8) return;
-    heroes[pid] = cardId;
-    if (heroes.Count == 8) {
-      fired = true;
-      OnLobbyReady?.Invoke(new Dictionary<int, string>(heroes));
+      if (heroes.Count == 8) OnLobbyReady?.Invoke(heroes);
+    } else if (LeaderboardPlace.Match(body) is { Success: true } m) {
+      // TrackPlacement
+      var place = int.Parse(m.Groups["place"].Value);
+      if (place is > 0 and < 9) OnRoundPlacement?.Invoke((m.Groups["cardId"].Value, place));
     }
   }
 }

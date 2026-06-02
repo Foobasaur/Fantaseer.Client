@@ -8,14 +8,20 @@ public class Eventy : Taster {
   readonly string[] bgz = ["BG19_010", "BG20_100", "BG20_203", "BG20_301", "BG20_HERO_100", "BG20_HERO_101", "BG20_HERO_102", "BG20_HERO_103", "BG20_HERO_201", "BG20_HERO_202", "BG20_HERO_242", "BG20_HERO_280", "BG20_HERO_282", "BG20_HERO_283", "BG20_HERO_301", "BG21_005", "BG21_014", "BG21_015", "BG21_018", "BG21_HERO_000", "BG21_HERO_010"];
   public Eventy(ITestOutputHelper output) : base(output) {
     Project.I.Settings = new Project.Settingz(true);
-    Project.I.Currently = () => ("Battlegrounds", "test-game-id", _ => true);
+    Project.I.Currently = () => (
+    "Battlegrounds",
+    opts => {
+      opts = opts with { meta = opts.meta ?? [] };
+      opts.meta["turns"] = 3;
+      return true;
+     }
+    );
   }
   [Fact]
   public async Task Test_Eventy_Publish() {
-    var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
+    var response = await Server.Eventy.Send<object>( new Core.Api.Routes.Eventy.Options(
       eventable: "OnPlayerDraw",
-      pickables: ["CATA_130"],                       
-      meta: new { turns = 3 }
+      pickables: ["CATA_130"]
      ));
     Logaree(response);
   }
@@ -23,7 +29,7 @@ public class Eventy : Taster {
   [Fact]
   public async Task Test_Eventy_Publish_GameStart() {
     var pickables = arenaz.OrderBy(_ => Guid.NewGuid()).Take(10).ToArray();
-    var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
+    var response = await Server.Eventy.Send<object>( new Core.Api.Routes.Eventy.Options(
       eventable: "OnGameStart",
       pickables,
       meta: new { role = "player" }
@@ -33,9 +39,9 @@ public class Eventy : Taster {
 
   [Fact]
   public async Task Test_Eventy_Publish_OnLobbyReady() {
-    Project.I.Currently = () => ("Battlegrounds", "test-game-id", _ => true);
+    Project.I.Currently = () => ("Battlegrounds", _ => true);
     var pickables = bgz.OrderBy(_ => Guid.NewGuid()).Take(10).ToArray();
-    var response = await Server.Eventy.Publish<object>(new Core.Api.Routes.Eventy.Options(
+    var response = await Server.Eventy.Send<object>(new Core.Api.Routes.Eventy.Options(
       eventable: "OnLobbyReady",
       pickables,
       meta: new { role = "player" }

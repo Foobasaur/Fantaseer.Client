@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Fantaseer.Core;
+
 namespace Fantaseer.HDT.Services;
 
-public sealed class Trakctor {
+public sealed class Trakctorist : Logerist {
   public Action<((string cardId, int player, int damage) attacker,
                  (string cardId, int player, int damage) defender)>? OnAttack;
   //
@@ -10,19 +12,31 @@ public sealed class Trakctor {
                  (string cardId, int player, int damage) source,
                  string context)>? OnDamage;
 
+  private static readonly Regex IdField =
+    rx(@"\bid=(?<id>\d+)\b");
+
+  private static readonly Regex CardIdField =
+    rx(@"\bcardId=(?<cid>\S+)");
+
+  private static readonly Regex PlayerField =
+    rx(@"\bplayer=(?<p>\d+)\b");
+
+  private static readonly Regex InfoLine =
+    rx(@"^Info\[\d+\]\s*=\s*\[(?<ent>[^\]]+)\]");
+
+  private static readonly Regex Defending =
+    rx(@"^TAG_CHANGE\s+Entity=(?<ent>\[[^\]]+\])\s+tag=DEFENDING\s+value=1\b");
+
+  private static readonly Regex MetaHead =
+    rx(@"^META_DATA\s+-\s+Meta=(?<meta>\w+)\s+Data=(?<data>-?\d+)\s+InfoCount=(?<count>\d+)");
+
+  private static readonly Regex BlockStart =
+    rx(@"^BLOCK_START\s+BlockType=(?<type>\w+).*?\bEntity=(?<src>\[[^\]]+\]|\S+)(?:.*?\bTarget=(?<tgt>\[[^\]]+\]|\S+))?");
+
   private Pending? pending;
   private readonly Stack<Frame> stack = new();
 
-  private static readonly Regex IdField = new(@"\bid=(?<id>\d+)\b");
-  private static readonly Regex CardIdField = new(@"\bcardId=(?<cid>\S+)");
-  private static readonly Regex PlayerField = new(@"\bplayer=(?<p>\d+)\b");
-  private static readonly Regex InfoLine = new(@"^Info\[\d+\]\s*=\s*\[(?<ent>[^\]]+)\]");
-  private static readonly Regex Defending = new(@"^TAG_CHANGE\s+Entity=(?<ent>\[[^\]]+\])\s+tag=DEFENDING\s+value=1\b");
-  private static readonly Regex MetaHead = new(@"^META_DATA\s+-\s+Meta=(?<meta>\w+)\s+Data=(?<data>-?\d+)\s+InfoCount=(?<count>\d+)");
-  private static readonly Regex BlockStart =
-    new(@"^BLOCK_START\s+BlockType=(?<type>\w+).*?\bEntity=(?<src>\[[^\]]+\]|\S+)(?:.*?\bTarget=(?<tgt>\[[^\]]+\]|\S+))?");
-
-  public void Feed(string body) {
+  protected override void Feed(string body) {
     if (pending is null) {
       if (body.StartsWith("BLOCK_START")) {
         var m = BlockStart.Match(body);
@@ -87,7 +101,6 @@ public sealed class Trakctor {
     IdField.Match(s) is { Success: true } im ? int.Parse(im.Groups["id"].Value) : 0,
     PlayerField.Match(s) is { Success: true } pm ? int.Parse(pm.Groups["p"].Value) : 0
   );
-
 
   private sealed class Frame(string type) {
     public string Type { get; } = type;
