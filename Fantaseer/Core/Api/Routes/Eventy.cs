@@ -13,8 +13,7 @@ public class Eventy() : Route("api/events") {
 
     public string eventable { get; init; } = eventable;
     public IEnumerable<string> pickables { get; init; } = pickables;
-    public JsonObject? meta { get; init; } = meta is null ? null : JsonSerializer.SerializeToNode(meta, meta.GetType())?.AsObject();
-
+    public JsonObject meta { get; init; } = meta is null ? [] : JsonSerializer.SerializeToNode(meta, meta.GetType())?.AsObject() ??[];
   }
 
   public override async Task<T> Res<T>(Request.Options options) {
@@ -69,7 +68,7 @@ public class Eventy() : Route("api/events") {
   /// </remarks>
   public Task Publish(params IEnumerable<Options> options) {
     var (mode, @publish) = Project.I.Currently!();   // captured at enqueue
-    var opts = options.Where(o => @publish(o)).ToArray();          // filtered at enqueue
+    var opts = options.Where(o => @publish(o)).ToArray();  // filtered at enqueue
     if (opts.Length == 0) return Task.CompletedTask; // nothing to publish, skip
 
     Task? window = null;
