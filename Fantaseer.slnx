@@ -1,5 +1,8 @@
 <Solution>
   <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Pre" />
+    <BuildType Name="Release" />
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Solution Items/">
@@ -9,20 +12,27 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="../../../source/Hearthstone-Deck-Tracker/Hearthstone Deck Tracker/Hearthstone Deck Tracker.csproj">
+    <BuildType Solution="Pre|*" Project="Debug" />
     <Platform Project="x86" />
     <Build Solution="Debug|*" Project="false" />
+    <Build Solution="Pre|*" Project="false" />
   </Project>
   <Project Path="../../../source/Hearthstone-Deck-Tracker/HearthWatcher/HearthWatcher.csproj">
+    <BuildType Solution="Pre|*" Project="Debug" />
     <Platform Project="x86" />
     <Build Solution="Debug|*" Project="false" />
+    <Build Solution="Pre|*" Project="false" />
   </Project>
   <Project Path="Fantaseer.HDT/Fantaseer.HDT.csproj">
     <BuildType Solution="Debug|*" Project="Plugin" />
+    <BuildType Solution="Pre|*" Project="Plugin" />
     <Platform Project="x86" />
   </Project>
   <Project Path="Fantaseer.Tests/Fantaseer.Tests.csproj">
+    <BuildType Solution="Pre|*" Project="Debug" />
     <Platform Project="x86" />
     <Build Solution="Debug|*" Project="false" />
+    <Build Solution="Pre|*" Project="false" />
   </Project>
   <Project Path="Fantaseer/Fantaseer.csproj">
     <Platform Project="x86" />

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<AssemblyTitle>Fantaseer.HDT</AssemblyTitle>
 		<TargetFramework>net472</TargetFramework>
 		<LangVersion>Latest</LangVersion>
 		<Nullable>enable</Nullable>
@@ -8,19 +9,12 @@
 		<OutputType>Library</OutputType>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<ComVisible>false</ComVisible>
-		<Platforms>x86</Platforms>
+		<Platforms>x86</Platforms>							
+		<Guid>ee465e91-527c-11f1-919e-c2b62456cdd1</Guid>
 		<Configurations>Debug;Release;Plugin</Configurations>
 	</PropertyGroup>
 	<PropertyGroup>
 		<!-- Assembly Information -->
-		<Guid>ee465e91-527c-11f1-919e-c2b62456cdd1</Guid>
-		<AssemblyTitle>Fantaseer.HDT</AssemblyTitle>
-		<Description>High Falootin Technology</Description>
-		<Company>Foobasaur, Esquire</Company>
-		<Product>Fantaseer.HDT</Product>
-		<Copyright>Copyright © 2026</Copyright>
-		<AssemblyVersion>0.0.1.0</AssemblyVersion>
-		<FileVersion>0.0.1.0</FileVersion>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)' == 'Plugin'">
 		<OutputPath>C:\Users\ezexey\AppData\Roaming\HearthstoneDeckTracker\Plugins</OutputPath>

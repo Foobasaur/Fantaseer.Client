@@ -37,6 +37,7 @@ public class Request : IDisposable {
           { "Accept", "application/json" },
           { "Authorization", options.authorization?.ToString() ?? $"Bearer {Server.I.OAuth?.Tokens?.access_token}" },
           { "x-game-code", "HS" },
+          { "x-game-client", "HDT" },
         },
         Content = options.content == null ? null
         : new StringContent(JS.Serialize(options.content), Encoding.UTF8, "application/json")

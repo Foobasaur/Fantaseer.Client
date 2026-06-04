@@ -1,5 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<AssemblyTitle>Fantaseer</AssemblyTitle>
 		<TargetFramework>net472</TargetFramework>
 		<LangVersion>Latest</LangVersion>
 		<Nullable>enable</Nullable>
@@ -8,9 +9,8 @@
 		<OutputType>Library</OutputType>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<Platforms>x86</Platforms>
-		<AssemblyTitle>Fantaseer</AssemblyTitle>
 		<Guid>4a96aa55-527b-11f1-95ea-16c0c897d3f1</Guid>
-		<Copyright>Copyright © 2026</Copyright>
+		<Configurations>Debug;Release;Pre</Configurations>
 	</PropertyGroup>
 	
 	<ItemGroup>
