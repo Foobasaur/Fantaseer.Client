@@ -1,8 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Fantaseer.Core;
-
-namespace Fantaseer.HDT.Services;
+namespace Fantaseer.HDT.Services.Logerists;
 
 public sealed class Connectionist : Logerist {
   public Action<TaskCompletionSource<State>>? OnCreateGame;

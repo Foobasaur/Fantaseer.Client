@@ -3,12 +3,12 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Fantaseer.Core;
 using Fantaseer.Core.Api;
-using Fantaseer.HDT.Services;
+using Fantaseer.HDT.Services.Logerists;
 using HearthDb.Enums;
 using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
 using Tracker = Hearthstone_Deck_Tracker.API.Core;
-namespace Fantaseer.HDT;
+namespace Fantaseer.HDT.Services;
 
 public class Service {
   public sealed class State {
@@ -32,23 +32,23 @@ public class Service {
   }
   Service() {
     Project.I.Currently = () => (
-    gameMode: Tracker.Game.CurrentGameMode switch {
-      GameMode.Arena => "Arena",
-      GameMode.Battlegrounds => "Battlegrounds",
-      GameMode.Ranked when Tracker.Game.CurrentFormatType == FormatType.FT_STANDARD => "Standard",
-      _ => "Wild"
-    },
-    publish: opts => {
-      DebugEvent(opts.eventable, JS.Serialize(new { opts }));
-      if (Status == null) return false;
-      Status.Page.TryGetValue(opts.eventable, out var stored);
-      Status.Cursor.TryGetValue(opts.eventable, out var i);
-      if (i < stored) { Status.Cursor[opts.eventable] = i + 1; return false; }
-      Status.Page[opts.eventable] = ++stored;
-      Status.Cursor[opts.eventable] = stored;
-      opts.meta["turns"] = Tracker.Game.GetTurnNumber();
-      return opts.pickables.Any();
-    }
+      gameMode: Tracker.Game.CurrentGameMode switch {
+        GameMode.Arena => "Arena",
+        GameMode.Battlegrounds => "Battlegrounds",
+        GameMode.Ranked when Tracker.Game.CurrentFormatType == FormatType.FT_STANDARD => "Standard",
+        _ => "Wild"
+      },
+      publish: opts => {
+        DebugEvent(opts.eventable, JS.Serialize(new { opts }));
+        if (Status == null) return false;
+        Status.Page.TryGetValue(opts.eventable, out var stored);
+        Status.Cursor.TryGetValue(opts.eventable, out var i);
+        if (i < stored) { Status.Cursor[opts.eventable] = i + 1; return false; }
+        Status.Page[opts.eventable] = ++stored;
+        Status.Cursor[opts.eventable] = stored;
+        opts.meta["turns"] = Tracker.Game.GetTurnNumber();
+        return opts.pickables.Any();
+      }
     );
   }
   public void Load() {

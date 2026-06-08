@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Windows.Controls;
+using Fantaseer.HDT.Services;
 using Hearthstone_Deck_Tracker.Plugins;
 using MahApps.Metro.Controls;
 using WPFLocalizeExtension.Engine;

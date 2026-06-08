@@ -31,8 +31,6 @@
   <Project Path="Fantaseer.Tests/Fantaseer.Tests.csproj">
     <BuildType Solution="Pre|*" Project="Debug" />
     <Platform Project="x86" />
-    <Build Solution="Debug|*" Project="false" />
-    <Build Solution="Pre|*" Project="false" />
   </Project>
   <Project Path="Fantaseer/Fantaseer.csproj">
     <Platform Project="x86" />

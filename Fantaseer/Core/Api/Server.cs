@@ -5,7 +5,7 @@ namespace Fantaseer.Core.Api;
 public class Server {
   public const string HREF =
 #if Pre
-   "https://d23w5d81b2617y.cloudfront.net";
+   "https://d2lmitypqnq5o0.cloudfront.net/";
 #else
     "http://localhost:5173/";
 #endif

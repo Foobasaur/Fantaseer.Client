@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Fantaseer.Core;
-
-namespace Fantaseer.HDT.Services;
+namespace Fantaseer.HDT.Services.Logerists;
 
 public sealed class Trakctorist : Logerist {
   public Action<((string cardId, int player, int damage) attacker,

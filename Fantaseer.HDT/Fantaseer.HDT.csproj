@@ -13,9 +13,6 @@
 		<Guid>ee465e91-527c-11f1-919e-c2b62456cdd1</Guid>
 		<Configurations>Debug;Release;Plugin</Configurations>
 	</PropertyGroup>
-	<PropertyGroup>
-		<!-- Assembly Information -->
-	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)' == 'Plugin'">
 		<OutputPath>C:\Users\ezexey\AppData\Roaming\HearthstoneDeckTracker\Plugins</OutputPath>
 	</PropertyGroup>
