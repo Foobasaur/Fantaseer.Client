@@ -8,22 +8,21 @@ public class OAuth(ITestOutputHelper output) : Taster(output) {
   // Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/auth/authorize?client_id=3ecf14713d4197603c8b544db6c8e6&client_secret=cd73999758aa1a78aa54f61d2517ef&grant_type=user_token&user_id=15054927&scope=user:read:email%20user:edit%20moderator:read:chatters'
 
   [Fact]
-  public async Task Test_Services_Authenticate() {
-    var auth = await Server.I.Authenticate(true);
+  public async Task Test_Services_Login() {
+    await Server.I.Login(true);
+    var auth = Server.I.OAuth;
+    Assert.NotNull(auth);
+    Logaree(auth);
+
     var tokens = auth.Tokens;
+    Assert.NotNull(tokens);
     Assert.NotEmpty(tokens.access_token!);
     Assert.NotEmpty(tokens.refresh_token!);
     Assert.NotEmpty(tokens.id_token!);
-    Assert.Equal(auth!.Player!.platformId, auth.Player.identityMeta!.players!.user!.sub);
-    Logaree(auth);
-  }
-  [Fact]
-  public async Task Test_Services_Login() {
-    await Server.I.Login(true);
-    var player = Server.I.OAuth?.Player;
+
+    var player = auth.Player;
     Assert.NotNull(player);
-    Assert.Equal(player!.platformId, player.identityMeta!.players!.user!.sub);
-    Logaree(player);
+    Assert.Equal(player.platformId, player.identityMeta!.players!.user!.sub);
   }
   [Fact]
   public async Task Test_Twitchy_Helix() {

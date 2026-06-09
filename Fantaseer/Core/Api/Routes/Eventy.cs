@@ -77,7 +77,7 @@ public class Eventy() : Route("api/events") {
         window = flush;
         buffer.AddRange(opts);
       } else flush = Task.Run(async () => {
-        await Task.Delay(TimeSpan.FromSeconds(3));
+        await Task.Delay(6000);
         Options[] batch;
         lock (gate) {
           batch = [.. buffer];

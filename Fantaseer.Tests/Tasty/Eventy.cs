@@ -9,17 +9,17 @@ public class Eventy : Taster {
   public Eventy(ITestOutputHelper output) : base(output) {
     Project.I.Settings = new Project.Settingz(true);
     Project.I.Currently = () => (
-    "Battlegrounds",
+    "Arena",
     opts => {
       opts = opts with { meta = opts.meta ?? [] };
       opts.meta["turns"] = 3;
       return true;
-     }
+    }
     );
   }
   [Fact]
   public async Task Test_Eventy_Publish() {
-    var response = await Server.Eventy.Send<object>( new Core.Api.Routes.Eventy.Options(
+    var response = await Server.Eventy.Send<object>(new Core.Api.Routes.Eventy.Options(
       eventable: "OnPlayerDraw",
       pickables: ["CATA_130"]
      ));
@@ -29,10 +29,9 @@ public class Eventy : Taster {
   [Fact]
   public async Task Test_Eventy_Publish_GameStart() {
     var pickables = arenaz.OrderBy(_ => Guid.NewGuid()).Take(10).ToArray();
-    var response = await Server.Eventy.Send<object>( new Core.Api.Routes.Eventy.Options(
+    var response = await Server.Eventy.Send<object>(new Core.Api.Routes.Eventy.Options(
       eventable: "OnGameStart",
-      pickables,
-      meta: new { role = "player" }
+      pickables
     ));
     Logaree(response);
   }
