@@ -54,8 +54,8 @@ public class Service {
   public void Load() {
     Project.I.Init();
     Server.Eventy.OnFetched += body => {
-      Status = Status;
-      DebugEvent("Eventy OnFetched", body);
+      Status = Tracker.Game.IsRunning ? Status : null;
+      DebugEvent("Eventy OnFetched", JS.Serialize(new { body, Status }));
     };
     LogEvents.OnPowerLogLine.Add(line => {
       //Trace.WriteLine(line);
@@ -95,7 +95,8 @@ public class Service {
     // ===================================================
     // Note: these events are fired for both player and opponent entities.
     trakctor.OnAttack = @event => {
-      var eventable = @event.attacker.player == Tracker.Game.Player.Id ? nameof(GameEvents.OnPlayerMinionAttack)
+      var eventable = @event.attacker.player == Tracker.Game.Player.Id 
+      ? nameof(GameEvents.OnPlayerMinionAttack)
       : nameof(GameEvents.OnOpponentMinionAttack);
 
       var attacker = new { @event.attacker.player, @event.attacker.damage };
@@ -153,19 +154,17 @@ public class Service {
         ).Where(id => id is not null).Distinct()
       ));
     });
+
     GameEvents.OnGameEnd.Add(() => {
-      DebugEvent(nameof(GameEvents.OnGameEnd), Status != null ? JS.Serialize(Status) : null);
-      Status = null;
-    });
-    GameEvents.OnGameStart.Add(() => {
-      DebugEvent(nameof(GameEvents.OnGameStart), Status != null ? JS.Serialize(Status) : null);
+      if (
+        Tracker.Game.CurrentGameMode == GameMode.Battlegrounds
+        && lobbyist.Status?.Placements.FirstOrDefault(p => p.Value == 1) is { } placement
+      ) Server.Eventy.Publish((nameof(Lobbyist.OnRoundPlacement), placement.Key, new { place = placement.Value }));
     });
     // ===================================================
 
     // --- Player events ---
     GameEvents.OnPlayerDraw.Add(c => Server.Eventy.Publish((nameof(GameEvents.OnPlayerDraw), c.Id)));
-
-    //GameEvents.OnPlayerMinionAttack.Add(c => DebugEvent(nameof(GameEvents.OnPlayerMinionAttack), c));
     //GameEvents.OnPlayerGet.Add(c => DebugEvent(nameof(GameEvents.OnPlayerGet), c));
     //GameEvents.OnPlayerPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlay), c));
     //GameEvents.OnPlayerHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerHandDiscard), c));
@@ -181,8 +180,6 @@ public class Service {
 
     // --- Opponent events ---
     GameEvents.OnOpponentPlay.Add(c => Server.Eventy.Publish((nameof(GameEvents.OnOpponentPlay), c.Id)));
-
-    //GameEvents.OnOpponentMinionAttack.Add(c => DebugEvent(nameof(GameEvents.OnOpponentMinionAttack), c));
     //GameEvents.OnOpponentHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentHandDiscard), c));
     //GameEvents.OnOpponentDeckDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentDeckDiscard), c));
     //GameEvents.OnOpponentPlayToDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToDeck), c));

@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<RunSettings>
-	<RunConfiguration>
-		<EnvironmentVariables>
-			<TWITCH_CLIENT_ID>sm8rllbmxrco3edfu4b3xkqttkmt1n</TWITCH_CLIENT_ID>
-			<EBS_URL>http://localhost:3636</EBS_URL>
-		</EnvironmentVariables>
-	</RunConfiguration>
-</RunSettings>

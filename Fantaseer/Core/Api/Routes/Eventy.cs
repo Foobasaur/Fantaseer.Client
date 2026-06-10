@@ -13,7 +13,7 @@ public class Eventy() : Route("api/events") {
 
     public string eventable { get; init; } = eventable;
     public IEnumerable<string> pickables { get; init; } = pickables;
-    public JsonObject meta { get; init; } = meta is null ? [] : JsonSerializer.SerializeToNode(meta, meta.GetType())?.AsObject() ??[];
+    public JsonObject meta { get; init; } = meta is null ? [] : JsonSerializer.SerializeToNode(meta, meta.GetType())?.AsObject() ?? [];
   }
 
   public override async Task<T> Res<T>(Request.Options options) {

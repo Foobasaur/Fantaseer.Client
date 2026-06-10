@@ -12,6 +12,7 @@ public sealed class Lobbyist : Logerist {
   public Action<(string cardId, int place)>? OnRoundPlacement;
 
   private State? state;
+  public State? Status => state;
   protected override void Feed(string body) {
     if (body == "CREATE_GAME") state = new();
     else if (state is null) return;

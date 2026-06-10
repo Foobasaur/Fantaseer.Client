@@ -5,8 +5,6 @@ namespace Fantaseer.Tests.Tasty;
 
 // ── Test ──────────────────────────────────────────────────────────────────
 public class OAuth(ITestOutputHelper output) : Taster(output) {
-  // Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/auth/authorize?client_id=3ecf14713d4197603c8b544db6c8e6&client_secret=cd73999758aa1a78aa54f61d2517ef&grant_type=user_token&user_id=15054927&scope=user:read:email%20user:edit%20moderator:read:chatters'
-
   [Fact]
   public async Task Test_Services_Login() {
     await Server.I.Login(true);
