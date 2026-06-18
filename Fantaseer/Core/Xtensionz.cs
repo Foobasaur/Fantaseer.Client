@@ -15,6 +15,7 @@ namespace System.Diagnostics.CodeAnalysis {
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
 namespace Fantaseer.Core {
+  using System.Diagnostics.CodeAnalysis;
   using System.Text;
   using System.Text.RegularExpressions;
 
@@ -28,5 +29,11 @@ namespace Fantaseer.Core {
       return Encoding.UTF8.GetString(Convert.FromBase64String(s));
     }
     public static Match? Success(this Regex input, string pattern) => input.Match(pattern) is { Success: true } m ? m : null;
+  }
+
+  public static class Rege {
+    public static Regex X([StringSyntax(StringSyntaxAttribute.Regex)] string pattern, RegexOptions options = RegexOptions.Compiled) {
+      return new(pattern, options);
+    }
   }
 }

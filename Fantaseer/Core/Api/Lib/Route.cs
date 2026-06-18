@@ -8,6 +8,7 @@ public abstract class Route(string endpoint) {
     public HttpStatusCode StatusCode { get; } = statusCode;
     public Error? Error { get; init; } = JS.Deserialize<Error>(body);
   }
+  public event Action<Request.Options>? OnFetch;
   public event Action<string>? OnFetched;
 
   private T Reply<T>(Response<T> res) {
@@ -19,6 +20,7 @@ public abstract class Route(string endpoint) {
     endpoint = $"/{endpoint}/{opts.endpoint}",
   });
   public virtual async Task<T> Res<T>(Request.Options opts) {
+    OnFetch?.Invoke(opts);
     using var req = Req(opts);
     var res = await req.Fetch<T>();
     return res is { StatusCode: >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices } ?

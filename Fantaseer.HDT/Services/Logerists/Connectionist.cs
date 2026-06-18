@@ -5,10 +5,6 @@ namespace Fantaseer.HDT.Services.Logerists;
 
 public sealed class Connectionist : Logerist {
   public Action<TaskCompletionSource<State>>? OnCreateGame;
-  private static readonly Regex PlayerLine = rx(@"^Player\s+EntityID=\d+\s+PlayerID=(?<pid>\d+)");
-  private static readonly Regex TurnTag = rx(@"^tag=TURN value=(?<n>\d+)");
-  private static readonly Regex SeedTag = rx(@"^tag=GAME_SEED value=(?<seed>\d+)");
-  private static readonly Regex TagChange = rx(@"^TAG_CHANGE Entity=(?<entity>.+?) tag=(?<tag>\S+) value=(?<value>\S+)");
   public enum Section { Before, GameEntity, Player, AfterBurst }
   public sealed class State {
     [JsonIgnore] public readonly TaskCompletionSource<State> tcs = new();
@@ -55,4 +51,8 @@ public sealed class Connectionist : Logerist {
       }
     }
   }
+  private static readonly Regex TurnTag = Rege.X(@"^tag=TURN value=(?<n>\d+)");
+  private static readonly Regex SeedTag = Rege.X(@"^tag=GAME_SEED value=(?<seed>\d+)");
+  private static readonly Regex PlayerLine = Rege.X(@"^Player\s+EntityID=\d+\s+PlayerID=(?<pid>\d+)");
+  private static readonly Regex TagChange = Rege.X(@"^TAG_CHANGE Entity=(?<entity>.+?) tag=(?<tag>\S+) value=(?<value>\S+)");
 }

@@ -36,12 +36,11 @@ public sealed class Lobbyist : Logerist {
     }
   }
 
-  private static readonly Regex FullEntity =
-    rx(@"^FULL_ENTITY\s+-\s+Updating\s+\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\]");
+  private static readonly Regex FullEntity = Rege.X(@"^FULL_ENTITY\s+-\s+Updating\s+\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\]");
   private static readonly Regex PlayerIdTag =
-    rx(@"^tag=PLAYER_ID value=(?<pid>\d+)\b");
+    Rege.X(@"^tag=PLAYER_ID value=(?<pid>\d+)\b"); 
   private static readonly Regex PlayerIdViaTagChange =
-    rx(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_ID value=(?<pid>\d+)\b");
+    Rege.X(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_ID value=(?<pid>\d+)\b");
   private static readonly Regex LeaderboardPlace =
-    rx(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_LEADERBOARD_PLACE value=(?<place>\d+)\b");
+    Rege.X(@"^TAG_CHANGE Entity=\[[^\]]*cardId=(?<cardId>[^\s\]]+)[^\]]*\] tag=PLAYER_LEADERBOARD_PLACE value=(?<place>\d+)\b");
 }

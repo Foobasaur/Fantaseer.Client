@@ -30,7 +30,6 @@ public class Request : IDisposable {
   public async Task<Response<T>> Fetch<T>(CancellationToken ct = default) {
     await Server.I.Gate.WaitAsync(ct).ConfigureAwait(false);
     try {
-      Trace.WriteLine(JS.Serialize(options));
       if (!Project.I.Settings.Enabled) throw new InvalidOperationException($"Project is not enabled.");
       using HttpRequestMessage message = new(options.content == null ? HttpMethod.Get : HttpMethod.Post, $"{options.endpoint}") {
         Headers = {

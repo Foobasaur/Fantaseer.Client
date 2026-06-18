@@ -21,7 +21,7 @@ public class Service {
     public Dictionary<string, int> Cursor { get; } = [];
   }
 
-  private static readonly Regex BodyLine = Logerist.rx(@"^[A-Z]\s+\d{2}:\d{2}:\d{2}\.\d+\s+\S+\s*-\s*(?<body>.*)$");
+  private static readonly Regex BodyLine = Rege.X(@"^[A-Z]\s+\d{2}:\d{2}:\d{2}\.\d+\s+\S+\s*-\s*(?<body>.*)$");
   private readonly Trakctorist trakctor = new();
   private readonly Connectionist connector = new();
   private readonly Lobbyist lobbyist = new();
@@ -39,7 +39,7 @@ public class Service {
         _ => "Wild"
       },
       publish: opts => {
-        DebugEvent(opts.eventable, JS.Serialize(new { opts }));
+        DebugEvent(opts.eventable, new { opts });
         if (Status == null) return false;
         Status.Page.TryGetValue(opts.eventable, out var stored);
         Status.Cursor.TryGetValue(opts.eventable, out var i);
@@ -53,9 +53,10 @@ public class Service {
   }
   public void Load() {
     Project.I.Init();
+    Server.Eventy.OnFetch += opts => DebugEvent("Eventy OnFetch", new { opts });
     Server.Eventy.OnFetched += body => {
       Status = Tracker.Game.IsRunning ? Status : null;
-      DebugEvent("Eventy OnFetched", JS.Serialize(new { body, Status }));
+      DebugEvent("Eventy OnFetched", new { body, Status });
     };
     LogEvents.OnPowerLogLine.Add(line => {
       //Trace.WriteLine(line);
@@ -68,34 +69,29 @@ public class Service {
     });
 
     connector.OnCreateGame = tcs => {
-      DebugEvent("OnCreateGame burst started");
       Status?.Cursor.Clear();
 
       tcs.Task.ContinueWith(task => {
-        DebugEvent("OnCreateGame burst ended", JS.Serialize(task.Result));
         // if the seed is the same, we can assume it's the same game and avoid resetting the state
         if (Status?.Connection?.GameEntity.Seed == task.Result.GameEntity.Seed) return;
-        else Status = new() { Connection = task.Result };
-
-        Server.Eventy.Publish((nameof(GameEvents.OnGameStart), Tracker.Game.Player.PlayerCardList.Select(x => x.Id)));
+        else {
+          Status = new() { Connection = task.Result };
+          Server.Eventy.Publish((nameof(GameEvents.OnGameStart), Tracker.Game.Player.PlayerCardList.Select(x => x.Id)));
+        }
       });
     };
 
-    lobbyist.OnLobbyReady = pickables => {
-      Server.Eventy.Publish(
+    lobbyist.OnLobbyReady = pickables => Server.Eventy.Publish(
        (nameof(Lobbyist.OnLobbyReady), pickables, new { player = Tracker.Game.Player.Hero?.CardId })
      );
-    };
-    lobbyist.OnRoundPlacement = placement => {
-      Server.Eventy.Publish(
+    lobbyist.OnRoundPlacement = placement => Server.Eventy.Publish(
         (nameof(Lobbyist.OnRoundPlacement), placement.cardId, new { placement.place })
       );
-    };
 
     // ===================================================
     // Note: these events are fired for both player and opponent entities.
     trakctor.OnAttack = @event => {
-      var eventable = @event.attacker.player == Tracker.Game.Player.Id 
+      var eventable = @event.attacker.player == Tracker.Game.Player.Id
       ? nameof(GameEvents.OnPlayerMinionAttack)
       : nameof(GameEvents.OnOpponentMinionAttack);
 
@@ -132,11 +128,10 @@ public class Service {
             .Select(e => e.CardId!)
         );
       }
-      DebugEvent(nameof(GameEvents.OnTurnStart),
-        $"[{role}]:\n\t{JS.Serialize(new {
-          player = Status.Turns[ActivePlayer.Player],
-          opponent = Status.Turns[ActivePlayer.Opponent]
-        })}");
+      DebugEvent(nameof(GameEvents.OnTurnStart), $"[{role}]:\n\t{new {
+        player = Status.Turns[ActivePlayer.Player],
+        opponent = Status.Turns[ActivePlayer.Opponent]
+      }}");
 
       Server.Eventy.Publish((
         nameof(GameEvents.OnTurnStart),
@@ -165,32 +160,32 @@ public class Service {
 
     // --- Player events ---
     GameEvents.OnPlayerDraw.Add(c => Server.Eventy.Publish((nameof(GameEvents.OnPlayerDraw), c.Id)));
-    //GameEvents.OnPlayerGet.Add(c => DebugEvent(nameof(GameEvents.OnPlayerGet), c));
-    //GameEvents.OnPlayerPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlay), c));
-    //GameEvents.OnPlayerHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerHandDiscard), c));
-    //GameEvents.OnPlayerMulligan.Add(c => DebugEvent(nameof(GameEvents.OnPlayerMulligan), c));
-    //GameEvents.OnPlayerDeckDiscard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerDeckDiscard), c));
-    //GameEvents.OnPlayerPlayToDeck.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlayToDeck), c));
-    //GameEvents.OnPlayerPlayToHand.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlayToHand), c));
-    //GameEvents.OnPlayerPlayToGraveyard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlayToGraveyard), c));
-    //GameEvents.OnPlayerCreateInDeck.Add(c => DebugEvent(nameof(GameEvents.OnPlayerCreateInDeck), c));
-    //GameEvents.OnPlayerCreateInPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerCreateInPlay), c));
-    //GameEvents.OnPlayerJoustReveal.Add(c => DebugEvent(nameof(GameEvents.OnPlayerJoustReveal), c));
-    //GameEvents.OnPlayerDeckToPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerDeckToPlay), c));
+    GameEvents.OnPlayerGet.Add(c => DebugEvent(nameof(GameEvents.OnPlayerGet), c.ToString()));
+    GameEvents.OnPlayerPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlay), c.ToString()));
+    GameEvents.OnPlayerHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerHandDiscard), c.ToString()));
+    GameEvents.OnPlayerMulligan.Add(c => DebugEvent(nameof(GameEvents.OnPlayerMulligan), c.ToString()));
+    GameEvents.OnPlayerDeckDiscard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerDeckDiscard), c.ToString()));
+    GameEvents.OnPlayerPlayToDeck.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlayToDeck), c.ToString()));
+    GameEvents.OnPlayerPlayToHand.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlayToHand), c.ToString()));
+    GameEvents.OnPlayerPlayToGraveyard.Add(c => DebugEvent(nameof(GameEvents.OnPlayerPlayToGraveyard), c.ToString()));
+    GameEvents.OnPlayerCreateInDeck.Add(c => DebugEvent(nameof(GameEvents.OnPlayerCreateInDeck), c.ToString()));
+    GameEvents.OnPlayerCreateInPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerCreateInPlay), c.ToString()));
+    GameEvents.OnPlayerJoustReveal.Add(c => DebugEvent(nameof(GameEvents.OnPlayerJoustReveal), c.ToString()));
+    GameEvents.OnPlayerDeckToPlay.Add(c => DebugEvent(nameof(GameEvents.OnPlayerDeckToPlay), c.ToString()));
 
     // --- Opponent events ---
     GameEvents.OnOpponentPlay.Add(c => Server.Eventy.Publish((nameof(GameEvents.OnOpponentPlay), c.Id)));
-    //GameEvents.OnOpponentHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentHandDiscard), c));
-    //GameEvents.OnOpponentDeckDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentDeckDiscard), c));
-    //GameEvents.OnOpponentPlayToDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToDeck), c));
-    //GameEvents.OnOpponentHandToDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentHandToDeck), c));
-    //GameEvents.OnOpponentPlayToHand.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToHand), c));
-    //GameEvents.OnOpponentPlayToGraveyard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToGraveyard), c));
-    //GameEvents.OnOpponentSecretTriggered.Add(c => DebugEvent(nameof(GameEvents.OnOpponentSecretTriggered), c));
-    //GameEvents.OnOpponentCreateInDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentCreateInDeck), c));
-    //GameEvents.OnOpponentCreateInPlay.Add(c => DebugEvent(nameof(GameEvents.OnOpponentCreateInPlay), c));
-    //GameEvents.OnOpponentJoustReveal.Add(c => DebugEvent(nameof(GameEvents.OnOpponentJoustReveal), c));
-    //GameEvents.OnOpponentDeckToPlay.Add(c => DebugEvent(nameof(GameEvents.OnOpponentDeckToPlay), c));
+    GameEvents.OnOpponentHandDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentHandDiscard), c.ToString()));
+    GameEvents.OnOpponentDeckDiscard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentDeckDiscard), c.ToString()));
+    GameEvents.OnOpponentPlayToDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToDeck), c.ToString()));
+    GameEvents.OnOpponentHandToDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentHandToDeck), c.ToString()));
+    GameEvents.OnOpponentPlayToHand.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToHand), c.ToString()));
+    GameEvents.OnOpponentPlayToGraveyard.Add(c => DebugEvent(nameof(GameEvents.OnOpponentPlayToGraveyard), c.ToString()));
+    GameEvents.OnOpponentSecretTriggered.Add(c => DebugEvent(nameof(GameEvents.OnOpponentSecretTriggered), c.ToString()));
+    GameEvents.OnOpponentCreateInDeck.Add(c => DebugEvent(nameof(GameEvents.OnOpponentCreateInDeck), c.ToString()));
+    GameEvents.OnOpponentCreateInPlay.Add(c => DebugEvent(nameof(GameEvents.OnOpponentCreateInPlay), c.ToString()));
+    GameEvents.OnOpponentJoustReveal.Add(c => DebugEvent(nameof(GameEvents.OnOpponentJoustReveal), c.ToString()));
+    GameEvents.OnOpponentDeckToPlay.Add(c => DebugEvent(nameof(GameEvents.OnOpponentDeckToPlay), c.ToString()));
 
   }
   public void Unload() {
@@ -198,10 +193,9 @@ public class Service {
   }
 
   public static Service I { get; } = new();
-  public static void DebugEvent(string eventable, object? info = null) {
-    Trace.WriteLine("\n===========");
-    Trace.WriteLine($"Event: {eventable}");
-    Trace.WriteLine($"Info: {info}");
-    Trace.WriteLine("===========\n");
+  public static void DebugEvent(string eventable, object info) {
+    Trace.WriteLine($"\n======{eventable}======");
+    Trace.WriteLine(JS.Serialize(new { info }));
+    Trace.WriteLine("============");
   }
 }
