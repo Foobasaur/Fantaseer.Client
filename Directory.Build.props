@@ -12,4 +12,8 @@
 	<PropertyGroup Condition="'$(Configuration)' == 'Pre'">
 		<DefineConstants>$(DefineConstants);Pre</DefineConstants>
 	</PropertyGroup>
+	<!-- RELEASE is not auto-defined by the SDK; Server.HREF keys off it to target the live API. -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+	</PropertyGroup>
 </Project>
