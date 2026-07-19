@@ -29,7 +29,8 @@ public class Project {
   });
 
   public void DeInit() {
-    Settings = Settings with { Enabled = false };
+    // TODO: check hdt latest releases documentation, past builds this was correct
+    // Settings = Settings with { Enabled = false };
   }
 
   public static Project I { get; } = new Project();
