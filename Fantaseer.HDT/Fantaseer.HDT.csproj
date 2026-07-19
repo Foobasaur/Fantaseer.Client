@@ -25,7 +25,11 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Fantaseer\Fantaseer.csproj" />
+	</ItemGroup>
 
+	<!-- HDT references: local dev builds against the HDT source checkout; CI sets HdtDir to a directory
+	     containing an extracted HDT release and builds against those assemblies instead. -->
+	<ItemGroup Condition="'$(HdtDir)' == ''">
 		<ProjectReference Include="E:\source\Hearthstone-Deck-Tracker\Hearthstone Deck Tracker\Hearthstone Deck Tracker.csproj">
 			<Private>False</Private>
 			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
@@ -40,6 +44,40 @@
 			<Private>False</Private>
 			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
 			<ExcludeAssets>runtime</ExcludeAssets>
+		</Reference>
+	</ItemGroup>
+	<ItemGroup Condition="'$(HdtDir)' != ''">
+		<Reference Include="HearthstoneDeckTracker">
+			<HintPath>$(HdtDir)\HearthstoneDeckTracker.exe</HintPath>
+			<Private>False</Private>
+			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+		</Reference>
+		<Reference Include="HearthWatcher">
+			<HintPath>$(HdtDir)\HearthWatcher.dll</HintPath>
+			<Private>False</Private>
+			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+		</Reference>
+		<Reference Include="HearthDb">
+			<HintPath>$(HdtDir)\HearthDb.dll</HintPath>
+			<Private>False</Private>
+			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+		</Reference>
+		<!-- Transitive deps of the HDT ProjectReference that the plugin uses directly; HDT ships all of
+		     these, so they must not be copied to output either. -->
+		<Reference Include="MahApps.Metro">
+			<HintPath>$(HdtDir)\MahApps.Metro.dll</HintPath>
+			<Private>False</Private>
+			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+		</Reference>
+		<Reference Include="WPFLocalizeExtension">
+			<HintPath>$(HdtDir)\WPFLocalizeExtension.dll</HintPath>
+			<Private>False</Private>
+			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+		</Reference>
+		<Reference Include="XAMLMarkupExtensions">
+			<HintPath>$(HdtDir)\XAMLMarkupExtensions.dll</HintPath>
+			<Private>False</Private>
+			<CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
 		</Reference>
 	</ItemGroup>
 

@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Pinned HDT release the plugin compiles against (matches the local dev checkout). Bump deliberately.
+  HDT_VERSION: "1.52.18"
+  RELEASE_FLAG: "[release]"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Parse version from Directory.Build.props
+        id: version
+        shell: pwsh
+        run: |
+          $xml = [xml](Get-Content Directory.Build.props -Raw)
+          $node = $xml.SelectSingleNode('/Project/PropertyGroup/FileVersion')
+          if (-not $node) { throw 'FileVersion not found in Directory.Build.props' }
+          $version = $node.InnerText.Trim()
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+          "zip=Fantaseer_v${version}_x86.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Download HDT v${{ env.HDT_VERSION }} assemblies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = "https://github.com/HearthSim/Hearthstone-Deck-Tracker/releases/download/v$env:HDT_VERSION/Hearthstone.Deck.Tracker-v$env:HDT_VERSION.zip"
+          Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\hdt.zip"
+          Expand-Archive "$env:RUNNER_TEMP\hdt.zip" -DestinationPath "$env:RUNNER_TEMP\hdt"
+          $exe = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -Filter HearthstoneDeckTracker.exe | Select-Object -First 1
+          if (-not $exe) { throw 'HearthstoneDeckTracker.exe not found in HDT release zip' }
+          "HDT_DIR=$($exe.DirectoryName)" >> $env:GITHUB_ENV
+
+      - name: Build (Release | x86)
+        shell: pwsh
+        run: dotnet build Fantaseer.HDT/Fantaseer.HDT.csproj -c Release -p:Platform=x86 "-p:HdtDir=$env:HDT_DIR"
+
+      - name: Package plugin zip
+        shell: pwsh
+        env:
+          ZIP: ${{ steps.version.outputs.zip }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = Join-Path $env:RUNNER_TEMP 'stage\Fantaseer'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          # HDT-provided assemblies must not ship inside the plugin folder; exclude by file name.
+          $hdtShipped = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -File | ForEach-Object Name | Sort-Object -Unique
+          Get-ChildItem 'Fantaseer.HDT\bin\x86\Release' -File -Filter '*.dll' |
+            Where-Object { $_.Name -notin $hdtShipped } |
+            Copy-Item -Destination $stage
+          if (-not (Test-Path (Join-Path $stage 'Fantaseer.HDT.dll'))) { throw 'Fantaseer.HDT.dll missing from package' }
+          Get-ChildItem $stage | ForEach-Object { Write-Host "packaged: Fantaseer\$($_.Name)" }
+          [System.IO.Compression.ZipFile]::CreateFromDirectory(
+            (Join-Path $env:RUNNER_TEMP 'stage\Fantaseer'),
+            (Join-Path (Get-Location) $env:ZIP),
+            [System.IO.Compression.CompressionLevel]::Optimal,
+            $true)
+
+      - name: Upload run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.version.outputs.zip }}
+          path: ${{ steps.version.outputs.zip }}
+          if-no-files-found: error
+
+      - name: Decide publish mode
+        id: gate
+        shell: pwsh
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $tagRef = git ls-remote origin "refs/tags/$env:TAG"
+          if (-not $tagRef) {
+            "mode=create" >> $env:GITHUB_OUTPUT
+          } elseif ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            "mode=overwrite" >> $env:GITHUB_OUTPUT
+          } elseif ($env:HEAD_COMMIT_MESSAGE -and $env:HEAD_COMMIT_MESSAGE.Contains($env:RELEASE_FLAG)) {
+            "mode=overwrite" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "publish skipped: $env:TAG exists, no $env:RELEASE_FLAG"
+            "mode=skip" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Publish release
+        if: steps.gate.outputs.mode != 'skip'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          ZIP: ${{ steps.version.outputs.zip }}
+          MODE: ${{ steps.gate.outputs.mode }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          if ($env:MODE -eq 'overwrite') {
+            # Invariant: the tag must point at the SHA that was built, and the asset must come from
+            # this build. Move the tag first, then replace the asset on the existing release.
+            git tag -f $env:TAG $env:GITHUB_SHA
+            git push --force origin "refs/tags/$env:TAG:refs/tags/$env:TAG"
+            $releaseExists = $true
+            try { gh release view $env:TAG *> $null } catch { $releaseExists = $false }
+            if ($releaseExists) {
+              gh release upload $env:TAG $env:ZIP --clobber
+              gh api "repos/$env:GITHUB_REPOSITORY/releases/generate-notes" -f tag_name=$env:TAG --jq .body | Set-Content "$env:RUNNER_TEMP\notes.md"
+              gh release edit $env:TAG --notes-file "$env:RUNNER_TEMP\notes.md" --latest
+              exit 0
+            }
+            # Tag existed without a release: fall through and create one for it.
+          }
+          gh release create $env:TAG $env:ZIP --title $env:TAG --generate-notes --latest --target $env:GITHUB_SHA
