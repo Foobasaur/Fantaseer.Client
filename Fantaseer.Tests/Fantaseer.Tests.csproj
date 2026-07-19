@@ -6,7 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
-		<Platforms>x86</Platforms>
+		<Platforms>x64</Platforms>
 		<Configurations>Debug;Release;Plugin</Configurations>
 	</PropertyGroup>
 

@@ -10,18 +10,18 @@ This repository also contains **Fantaseer for Hearthstone Deck Tracker**, a plug
 ### Requirements
 
 - Windows with [Hearthstone Deck Tracker](https://hsdecktracker.net/) installed.
-- The plugin is built and tested against HDT **v1.52.18** (x86).
+- The plugin is built and tested against HDT **v1.53.10** (x64).
 
 ### Download
 
-Grab the latest `Fantaseer_v<version>_x86.zip` from the [Releases page](https://github.com/Foobasaur/Fantaseer.net.Client/releases).
+Grab the latest `Fantaseer_v<version>_x64.zip` from the [Releases page](https://github.com/Foobasaur/Fantaseer.net.Client/releases).
 
 The install steps below follow HDT's official [plugin installation guide](https://github.com/HearthSim/Hearthstone-Deck-Tracker/wiki/Available-Plugins).
 
 ### Option A — drag and drop (recommended)
 
 1. In HDT, open **Options → Tracker → Plugins**.
-2. Drag the downloaded `Fantaseer_v<version>_x86.zip` into the plugins window.
+2. Drag the downloaded `Fantaseer_v<version>_x64.zip` into the plugins window.
 3. Restart HDT.
 4. Enable **Fantaseer** in **Options → Tracker → Plugins**.
 
@@ -39,12 +39,12 @@ The install steps below follow HDT's official [plugin installation guide](https:
 
 ## Building from source
 
-The plugin targets .NET Framework 4.7.2 and builds only for the `x86` platform, matching HDT v1.52.18.
+The plugin targets .NET Framework 4.7.2 and builds only for the `x64` platform, matching HDT v1.53.10.
 
 To build against an extracted HDT release instead of a local HDT source checkout, point `HdtDir` at the folder containing `HearthstoneDeckTracker.exe`:
 
 ```powershell
-dotnet build Fantaseer.HDT/Fantaseer.HDT.csproj -c Release -p:Platform=x86 -p:HdtDir="<path>\Hearthstone Deck Tracker"
+dotnet build Fantaseer.HDT/Fantaseer.HDT.csproj -c Release -p:Platform=x64 -p:HdtDir="<path>\Hearthstone Deck Tracker"
 ```
 
 Releases are built and published automatically by [GitHub Actions](.github/workflows/release.yml) on every push to `main`, tagged from the version in `Directory.Build.props`.

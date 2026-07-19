@@ -16,7 +16,7 @@ concurrency:
 
 env:
   # Pinned HDT release the plugin compiles against (matches the local dev checkout). Bump deliberately.
-  HDT_VERSION: "1.52.18"
+  HDT_VERSION: "1.53.10"
   RELEASE_FLAG: "[release]"
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
           $version = $node.InnerText.Trim()
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
-          "zip=Fantaseer_v${version}_x86.zip" >> $env:GITHUB_OUTPUT
+          "zip=Fantaseer_v${version}_x64.zip" >> $env:GITHUB_OUTPUT
 
       - name: Download HDT v${{ env.HDT_VERSION }} assemblies
         shell: pwsh
@@ -46,12 +46,27 @@ jobs:
           Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\hdt.zip"
           Expand-Archive "$env:RUNNER_TEMP\hdt.zip" -DestinationPath "$env:RUNNER_TEMP\hdt"
           $exe = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -Filter HearthstoneDeckTracker.exe | Select-Object -First 1
-          if (-not $exe) { throw 'HearthstoneDeckTracker.exe not found in HDT release zip' }
+          if (-not $exe) {
+            # Squirrel-packaged releases nest the app files inside a *-full.nupkg (itself a zip).
+            $nupkg = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -Filter '*-full.nupkg' | Select-Object -First 1
+            if ($nupkg) {
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($nupkg.FullName, "$env:RUNNER_TEMP\hdt\_nupkg")
+              $exe = Get-ChildItem "$env:RUNNER_TEMP\hdt\_nupkg" -Recurse -Filter HearthstoneDeckTracker.exe | Select-Object -First 1
+            }
+          }
+          if (-not $exe) {
+            Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -File | ForEach-Object { Write-Host $_.FullName.Substring("$env:RUNNER_TEMP\hdt".Length) }
+            throw 'HearthstoneDeckTracker.exe not found in HDT release zip (contents listed above)'
+          }
+          $required = 'HearthstoneDeckTracker.exe','HearthWatcher.dll','HearthDb.dll','MahApps.Metro.dll','WPFLocalizeExtension.dll','XAMLMarkupExtensions.dll'
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $exe.DirectoryName $_)) }
+          if ($missing) { throw "HDT assembly dir $($exe.DirectoryName) is missing: $($missing -join ', ')" }
+          Write-Host "HDT assemblies: $($exe.DirectoryName)"
           "HDT_DIR=$($exe.DirectoryName)" >> $env:GITHUB_ENV
 
-      - name: Build (Release | x86)
+      - name: Build (Release | x64)
         shell: pwsh
-        run: dotnet build Fantaseer.HDT/Fantaseer.HDT.csproj -c Release -p:Platform=x86 "-p:HdtDir=$env:HDT_DIR"
+        run: dotnet build Fantaseer.HDT/Fantaseer.HDT.csproj -c Release -p:Platform=x64 "-p:HdtDir=$env:HDT_DIR"
 
       - name: Package plugin zip
         shell: pwsh
@@ -63,7 +78,7 @@ jobs:
           New-Item -ItemType Directory -Force $stage | Out-Null
           # HDT-provided assemblies must not ship inside the plugin folder; exclude by file name.
           $hdtShipped = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -File | ForEach-Object Name | Sort-Object -Unique
-          Get-ChildItem 'Fantaseer.HDT\bin\x86\Release' -File -Filter '*.dll' |
+          Get-ChildItem 'Fantaseer.HDT\bin\x64\Release' -File -Filter '*.dll' |
             Where-Object { $_.Name -notin $hdtShipped } |
             Copy-Item -Destination $stage
           if (-not (Test-Path (Join-Path $stage 'Fantaseer.HDT.dll'))) { throw 'Fantaseer.HDT.dll missing from package' }

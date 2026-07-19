@@ -8,7 +8,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<OutputType>Library</OutputType>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<Platforms>x86</Platforms>
+		<Platforms>x64</Platforms>
 		<Guid>4a96aa55-527b-11f1-95ea-16c0c897d3f1</Guid>
 		<Configurations>Debug;Release;Pre</Configurations>
 	</PropertyGroup>
