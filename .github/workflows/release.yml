@@ -132,7 +132,9 @@ jobs:
             # Invariant: the tag must point at the SHA that was built, and the asset must come from
             # this build. Move the tag first, then replace the asset on the existing release.
             git tag -f $env:TAG $env:GITHUB_SHA
-            git push --force origin "refs/tags/$env:TAG:refs/tags/$env:TAG"
+            # A fully-qualified ref without :dst pushes to the same name; avoids the PowerShell
+            # pitfall where "$env:TAG:refs" parses as one variable named "TAG:refs".
+            git push --force origin "refs/tags/$env:TAG"
             $releaseExists = $true
             try { gh release view $env:TAG *> $null } catch { $releaseExists = $false }
             if ($releaseExists) {
