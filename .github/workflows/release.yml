@@ -45,24 +45,24 @@ jobs:
           $url = "https://github.com/HearthSim/Hearthstone-Deck-Tracker/releases/download/v$env:HDT_VERSION/Hearthstone.Deck.Tracker-v$env:HDT_VERSION.zip"
           Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\hdt.zip"
           Expand-Archive "$env:RUNNER_TEMP\hdt.zip" -DestinationPath "$env:RUNNER_TEMP\hdt"
-          $exe = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -Filter HearthstoneDeckTracker.exe | Select-Object -First 1
-          if (-not $exe) {
-            # Squirrel-packaged releases nest the app files inside a *-full.nupkg (itself a zip).
-            $nupkg = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -Filter '*-full.nupkg' | Select-Object -First 1
-            if ($nupkg) {
-              [System.IO.Compression.ZipFile]::ExtractToDirectory($nupkg.FullName, "$env:RUNNER_TEMP\hdt\_nupkg")
-              $exe = Get-ChildItem "$env:RUNNER_TEMP\hdt\_nupkg" -Recurse -Filter HearthstoneDeckTracker.exe | Select-Object -First 1
-            }
-          }
+          # Release zips ship the exe as "Hearthstone Deck Tracker.exe" while the assembly (and the
+          # csproj HintPath) is HearthstoneDeckTracker.exe — accept either and normalize the name.
+          $exe = Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -File |
+            Where-Object { $_.Name -in 'HearthstoneDeckTracker.exe', 'Hearthstone Deck Tracker.exe' } |
+            Select-Object -First 1
           if (-not $exe) {
             Get-ChildItem "$env:RUNNER_TEMP\hdt" -Recurse -File | ForEach-Object { Write-Host $_.FullName.Substring("$env:RUNNER_TEMP\hdt".Length) }
-            throw 'HearthstoneDeckTracker.exe not found in HDT release zip (contents listed above)'
+            throw 'HDT executable not found in release zip (contents listed above)'
+          }
+          $hdtDir = $exe.DirectoryName
+          if (-not (Test-Path (Join-Path $hdtDir 'HearthstoneDeckTracker.exe'))) {
+            Copy-Item $exe.FullName (Join-Path $hdtDir 'HearthstoneDeckTracker.exe')
           }
           $required = 'HearthstoneDeckTracker.exe','HearthWatcher.dll','HearthDb.dll','MahApps.Metro.dll','WPFLocalizeExtension.dll','XAMLMarkupExtensions.dll'
-          $missing = $required | Where-Object { -not (Test-Path (Join-Path $exe.DirectoryName $_)) }
-          if ($missing) { throw "HDT assembly dir $($exe.DirectoryName) is missing: $($missing -join ', ')" }
-          Write-Host "HDT assemblies: $($exe.DirectoryName)"
-          "HDT_DIR=$($exe.DirectoryName)" >> $env:GITHUB_ENV
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $hdtDir $_)) }
+          if ($missing) { throw "HDT assembly dir $hdtDir is missing: $($missing -join ', ')" }
+          Write-Host "HDT assemblies: $hdtDir"
+          "HDT_DIR=$hdtDir" >> $env:GITHUB_ENV
 
       - name: Build (Release | x64)
         shell: pwsh
