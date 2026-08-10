@@ -82,11 +82,9 @@ public class Service {
     };
 
     lobbyist.OnLobbyReady = pickables => Server.Eventy.Publish(
-       (nameof(Lobbyist.OnLobbyReady), pickables, new { player = Tracker.Game.Player.Hero?.CardId })
-     );
+      (nameof(Lobbyist.OnLobbyReady), pickables, new { player = Tracker.Game.Player.Hero?.CardId }));
     lobbyist.OnRoundPlacement = placement => Server.Eventy.Publish(
-        (nameof(Lobbyist.OnRoundPlacement), placement.cardId, new { placement.place })
-      );
+      (nameof(Lobbyist.OnRoundPlacement), placement.cardId, new { placement.place }));
 
     // ===================================================
     // Note: these events are fired for both player and opponent entities.
@@ -99,18 +97,14 @@ public class Service {
       var defender = new { @event.defender.player, @event.defender.damage };
       Server.Eventy.Publish(
         (eventable, @event.attacker.cardId, new { attacker }),
-        (eventable, @event.defender.cardId, new { defender }),
-        (nameof(GameEvents.OnEntityWillTakeDamage), @event.defender.cardId, new { context = "ATTACK", target = defender }),
-        (nameof(GameEvents.OnEntityWillTakeDamage), @event.attacker.cardId, new { context = "ATTACK", source = attacker })
-      );
+        (eventable, @event.defender.cardId, new { defender }));
     };
 
     trakctor.OnDamage = @event => {
       var eventable = nameof(GameEvents.OnEntityWillTakeDamage);
       Server.Eventy.Publish(
         (eventable, @event.target.cardId, new { @event.context, target = new { @event.target.player, @event.target.damage } }),
-        (eventable, @event.source.cardId, new { @event.context, source = new { @event.source.player, @event.source.damage } })
-      );
+        (eventable, @event.source.cardId, new { @event.context, source = new { @event.source.player, @event.source.damage } }));
     };
 
     GameEvents.OnTurnStart.Add(role => {
@@ -125,8 +119,7 @@ public class Service {
                      && e.IsPlayableCard
                      && !(e.Info.Hidden && (e.IsInHand || e.IsInDeck))
                      && !seen.Contains(e.CardId!))
-            .Select(e => e.CardId!)
-        );
+            .Select(e => e.CardId!));
       }
       DebugEvent(nameof(GameEvents.OnTurnStart), $"[{role}]:\n\t{new {
         player = Status.Turns[ActivePlayer.Player],

@@ -14,7 +14,7 @@ public class Request : IDisposable {
     public static implicit operator Options(string endpoint) => new(endpoint);
     public static implicit operator Options((string endpoint, object? content) t) => new(t.endpoint, t.content);
 
-    public string? baseUrl { get; init; }
+    public string href { get; init; } = Server.HREF;
     public string endpoint { get; init; } = endpoint;
     public object? content { get; init; } = content;
     public AuthenticationHeaderValue? authorization { get; init; }
@@ -25,7 +25,7 @@ public class Request : IDisposable {
 
   public Request(Options opts) {
     options = opts;
-    http = new() { BaseAddress = new(options.baseUrl ?? Server.HREF) };
+    http = new() { BaseAddress = new(options.href) };
   }
   public async Task<Response<T>> Fetch<T>(CancellationToken ct = default) {
     await Server.I.Gate.WaitAsync(ct).ConfigureAwait(false);

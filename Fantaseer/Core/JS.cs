@@ -30,8 +30,7 @@ public static class JS {
   }
 
   public static T? FromFile<T>([CallerMemberName] string? filepath = null) {
-    lock (Files.Get(ref filepath))
-      return File.Exists(filepath) ? Deserialize<T>(File.ReadAllText(filepath)) : default;
+    lock (Files.Get(ref filepath)) return File.Exists(filepath) ? Deserialize<T>(File.ReadAllText(filepath)) : default;
   }
   public static T? ToFile<T>(T? o, [CallerMemberName] string? filepath = null) {
     if (o == null) lock (Files.Get(ref filepath)) File.Delete(filepath);

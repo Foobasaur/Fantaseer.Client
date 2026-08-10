@@ -26,5 +26,5 @@ public class Twitchy() : Route("api/twitch") {
     }
   }
 
-  public Task<T> Refresh<T>(string token) => Res<T>(new("auth?type=refresh", token));
+  public Task<T> Refresh<T>(string token) => Res<T>(("auth?type=refresh", token));
 }
